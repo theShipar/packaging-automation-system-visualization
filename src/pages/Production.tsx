@@ -113,7 +113,7 @@ function Hero({ s }: { s: Session }) {
         <div className="crumbs">Plant A · Line 01 · Production</div>
         <h1 className="display">Packaging Line</h1>
         <div className="row wrap">
-          <Chip tone="dark" k="Batch" n={<Link to={`/production/batches/${s.batch.id}`} style={{ color: 'inherit' }}>{s.batch.id}</Link>} />
+          <Chip data-test="batch" tone="dark" k="Batch" n={<Link to={`/production/batches/${s.batch.id}`} style={{ color: 'inherit' }}>{s.batch.id}</Link>} />
           <Chip k="SKU" n={s.batch.sku} />
           <Chip k="Planned" n={s.batch.planned.toLocaleString()} className="opt" title="Units planned as input; committed good is the shipping target" />
           <SimBadge />

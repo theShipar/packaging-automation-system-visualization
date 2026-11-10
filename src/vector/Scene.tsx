@@ -197,6 +197,7 @@ export function Scene({ selected, selectedComp, onSelect, onSelectComp, onOpen, 
                     key={`h${id}`}
                     d={GEOMETRY[id].hullD}
                     className="hit"
+                    data-station={id}
                     tabIndex={0}
                     role="button"
                     aria-pressed={selected === id}

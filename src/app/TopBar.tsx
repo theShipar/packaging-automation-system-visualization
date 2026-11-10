@@ -144,11 +144,11 @@ export function TopBar() {
         </div>
       </div>
       <div className="tb-right">
-        <div className="clock" title="Virtual simulation time">
+        <div className="clock" data-test="clock" title="Virtual simulation time">
           <b>{formatClock(s.t)}</b>
           <span>virtual time</span>
         </div>
-        <div className="seg" role="radiogroup" aria-label="Simulation speed">
+        <div className="seg" data-test="speed" role="radiogroup" aria-label="Simulation speed">
           {SPEEDS.map((v) => (
             <button key={v} role="radio" aria-checked={s.speed === v} className={s.speed === v ? 'on' : ''} onClick={() => s.speed !== v && store.command({ kind: 'SET_SPEED', speed: v })}>
               {v}×
@@ -156,6 +156,7 @@ export function TopBar() {
           ))}
         </div>
         <button
+          data-test="play"
           className={`play${s.status === 'running' ? '' : ' go'}`}
           disabled={s.status === 'completed' || s.status === 'halted'}
           onClick={() => store.command({ kind: s.status === 'ready' ? 'START' : s.status === 'running' ? 'PAUSE' : 'RESUME' })}
