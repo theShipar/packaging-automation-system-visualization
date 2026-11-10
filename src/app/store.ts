@@ -28,6 +28,8 @@ class SimStore {
   /** Recent frame intervals in ms, for the dev performance readout. */
   frameMs: number[] = [];
   private steppers = new Set<Stepper>();
+  /** Steppers that move only UI (the camera); they keep the loop alive without re-rendering the factory. */
+  private quiet = new Set<Stepper>();
   private frameL = new Set<L>();
   private uiL = new Set<L>();
   private raf = 0;
@@ -91,11 +93,12 @@ class SimStore {
     if (this.session.status === 'running') this.kick();
   }
 
-  addStepper(f: Stepper) {
-    this.steppers.add(f);
+  addStepper(f: Stepper, opts: { quiet?: boolean } = {}) {
+    (opts.quiet ? this.quiet : this.steppers).add(f);
     this.kick();
     return () => {
       this.steppers.delete(f);
+      this.quiet.delete(f);
     };
   }
 
@@ -106,8 +109,9 @@ class SimStore {
     if (this.frameMs.push(now - this.last) > 120) this.frameMs.shift();
     this.last = now;
     let active = false;
+    let loud = false;
     if (s.status === 'running') {
-      active = true;
+      active = loud = true;
       advance(s, s.t + dt * s.speed);
       if (now - this.lastSave > 15000) {
         this.lastSave = now;
@@ -118,9 +122,11 @@ class SimStore {
         void this.save(true);
       }
     }
-    for (const f of this.steppers) if (f(dt)) active = true;
-    this.emitFrame();
-    if (now - this.lastUi > 120 || s.status !== 'running') {
+    for (const f of this.steppers) if (f(dt)) active = loud = true;
+    for (const f of this.quiet) if (f(dt)) active = true;
+    const visual = loud || this.quiet.size === 0;
+    if (visual) this.emitFrame();
+    if (visual && (now - this.lastUi > 120 || s.status !== 'running')) {
       this.lastUi = now;
       this.emitUi();
     }

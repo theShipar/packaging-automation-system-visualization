@@ -1,6 +1,12 @@
 import { useEffect, useRef } from 'react';
 
 export const SHORTCUTS: [string, string][] = [
+  ['Drag', 'Pan the canvas (5 px before a click becomes a drag)'],
+  ['Space + drag', 'Pan, even starting on a machine'],
+  ['Wheel  ·  pinch', 'Zoom at the pointer'],
+  ['F  ·  ⌘ 0', 'Fit the whole line'],
+  ['+  /  −', 'Zoom in / out around the centre'],
+  ['Double-click', 'Focus a machine or part'],
   ['/', 'Find and follow a serial'],
   ['⌘ K  ·  Ctrl K', 'Find and follow a serial'],
   ['Esc', 'Step back: popover, part, machine, follow, drawer'],

@@ -1,4 +1,5 @@
 import type { MouseEvent, ReactNode } from 'react';
+import { focusComponent, focusStation } from '../camera/commands';
 import type { StationId } from '../domain/types';
 import { workspace, type InspectorTab, type Tool } from './workspaceStore';
 
@@ -37,6 +38,8 @@ export function StationLink({ station, comp, tab, className, children }: { stati
         if (comp) workspace.selectComponent(station, comp);
         else workspace.select(station, { inspector: true });
         workspace.openInspector(tab ?? (comp ? 'parts' : 'overview'));
+        if (comp) focusComponent(station, comp);
+        else focusStation(station);
       }}
     >
       {children}

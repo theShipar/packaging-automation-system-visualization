@@ -3,6 +3,7 @@ import { store, useUi } from '../app/store';
 import { formatClock, lineKpis } from '../domain/kpis';
 import { SPEEDS, type Session } from '../domain/types';
 import { IcoBell, IcoKeyboard, IcoMore, IcoPause, IcoPlay, IcoReset, IcoSave, IcoSearch, IcoStep } from '../ui/Icons';
+import { focusComponent, focusStation } from '../camera/commands';
 import { alertsOf, type Alert } from './alerts';
 import { RestartDialog } from './RestartDialog';
 import { usePopover } from './usePopover';
@@ -164,6 +165,8 @@ function Alerts({ s }: { s: Session }) {
     if (a.component) workspace.selectComponent(a.station, a.component);
     else workspace.select(a.station, { inspector: true });
     workspace.openInspector(a.component ? 'parts' : 'overview');
+    if (a.component) focusComponent(a.station, a.component);
+    else focusStation(a.station);
   };
   return (
     <div className="pop-wrap" ref={ref}>

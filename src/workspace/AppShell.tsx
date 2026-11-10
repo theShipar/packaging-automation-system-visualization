@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { store, useUi } from '../app/store';
+import { focusComponent, focusStation } from '../camera/commands';
+import { camera } from '../camera/controller';
 import type { StationId } from '../domain/types';
 import { useReducedMotionSync } from '../vector/Scene';
 import { CanvasRegion } from './CanvasRegion';
@@ -42,6 +44,15 @@ export function AppShell() {
         setHelp(true);
         return;
       }
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key === '0') {
+        e.preventDefault();
+        return camera.fit();
+      }
+      if (mod || e.altKey) return;
+      if (e.key === 'f' || e.key === 'F') return camera.fit();
+      if (e.key === '+' || e.key === '=') return camera.zoomBy(1.25);
+      if (e.key === '-' || e.key === '_') return camera.zoomBy(1 / 1.25);
       if (e.key !== 'Escape') return;
       if (workspace.back()) return;
       if (store.follow) return store.setFollow(null);
@@ -56,11 +67,18 @@ export function AppShell() {
     (window as unknown as { lfWorkspace: unknown }).lfWorkspace = {
       state: () => workspace.get(),
       select: (id: StationId | null) => workspace.select(id, { inspector: false }),
-      selectComponent: (id: StationId, comp: string) => workspace.selectComponent(id, comp),
+      selectComponent: (id: StationId, comp: string) => {
+        workspace.selectComponent(id, comp);
+        focusComponent(id, comp);
+      },
       openInspector: (id: StationId) => workspace.select(id, { inspector: true }),
-      focus: (id: StationId) => workspace.select(id, { inspector: false }),
+      focus: (id: StationId) => {
+        workspace.select(id, { inspector: false });
+        focusStation(id);
+      },
       openTool: workspace.openTool.bind(workspace),
     };
+    (window as unknown as { lfCamera: unknown }).lfCamera = camera;
   }, []);
 
   return (

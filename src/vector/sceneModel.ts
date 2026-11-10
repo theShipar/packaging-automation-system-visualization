@@ -1,3 +1,4 @@
+import { boundsOf, type Bounds } from '../camera/camera';
 import { STATION_IDS, type StationId } from '../domain/types';
 import { EXIT_RUN, LANES } from '../transport/graph';
 import { CAM, CONNECTORS, GLOBAL_VIEW, GP, GP0, PLACE, PORTS, VIEWS, toWorld } from '../transport/layout';
@@ -104,6 +105,8 @@ CAM.ox = -B0.x0 + PAD.l;
 CAM.oy = -B0.y0 + PAD.t;
 export const VIEW_W = B0.x1 - B0.x0 + PAD.l + PAD.r;
 export const VIEW_H = B0.y1 - B0.y0 + PAD.t + PAD.b;
+/** Union of everything physical (machines in every pose, lanes with products, pallet exit) in world units. */
+export const CONTENT_BOUNDS: Bounds = { minX: PAD.l, minY: PAD.t, maxX: VIEW_W - PAD.r, maxY: VIEW_H - PAD.b };
 
 /* ---------------------------------------------------------------- connectors (after the camera is fitted) */
 
@@ -122,7 +125,9 @@ export const CONNECTOR_SHAPES: Shape[][] = CONNECTORS.map((c) => {
 export interface StationGeometry {
   hull: Pt[];
   hullD: string;
+  bounds: Bounds;
   comps: Record<string, string>;
+  compBounds: Record<string, Bounds>;
   label: Pt;
 }
 
@@ -132,12 +137,16 @@ export const GEOMETRY: Record<StationId, StationGeometry> = Object.fromEntries(
     const d = drawStation(id, restPose(), null);
     const h = hull(d.pts);
     const comps: Record<string, string> = {};
-    for (const [c, pts] of Object.entries(d.compPts)) comps[c] = poly(hull(pts));
+    const compBounds: Record<string, Bounds> = {};
+    for (const [c, pts] of Object.entries(d.compPts)) {
+      comps[c] = poly(hull(pts));
+      compBounds[c] = boundsOf(pts);
+    }
     const f = FIGURES[id];
     const anchor = GP(PLACE[id].dx + (f.xEntry + f.xExit) / 2, 44, 0);
     let maxY = -1e9;
     for (const p of h) maxY = Math.max(maxY, p[1]);
-    return [id, { hull: h, hullD: poly(h), comps, label: [anchor[0], Math.min(anchor[1], maxY + 10)] as Pt }];
+    return [id, { hull: h, hullD: poly(h), bounds: boundsOf(h), comps, compBounds, label: [anchor[0], Math.min(anchor[1], maxY + 10)] as Pt }];
   }),
 ) as Record<StationId, StationGeometry>;
 

@@ -23,7 +23,7 @@ export function StatusRail() {
             <i style={{ width: `${pct * 100}%` }} />
           </span>
         </span>
-        <span className="sr-item" title="Units released and not yet shipped or rejected">
+        <span className="sr-item sr-wip" title="Units released and not yet shipped or rejected">
           <span className="k">WIP</span>
           <b className="num">{c.wip.toLocaleString()}</b>
         </span>
