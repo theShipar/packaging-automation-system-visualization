@@ -1,0 +1,93 @@
+/*
+ * LineFlow design tokens. Warm off-white canvas, ink type, one orange accent.
+ * The --lf-* names are the app's public tokens; every page reads them.
+ */
+:root {
+  /* palette */
+  --c-canvas: #f2f0eb;
+  --c-canvas-2: #e7e4dd;
+  --c-surface: #ffffff;
+  --c-surface-2: #f7f6f2;
+  --c-surface-3: #efede7;
+  --c-ink: #000b1a;
+  --c-ink-2: #2b313b;
+  --c-muted: #737780;
+  --c-faint: #a6a9ae;
+  --c-line: #e8e5de;
+  --c-line-2: #d9d5cc;
+  --c-orange: #fe5e0e;
+  --c-orange-deep: #d9480b;
+  --c-orange-2: #ff8a4c;
+  --c-orange-soft: #ffe4d4;
+  --c-orange-tint: #fff4ed;
+  --c-yellow: #febe42;
+  --c-yellow-deep: #a8730a;
+  --c-yellow-soft: #fff3d6;
+  --c-red: #ef2f2a;
+  --c-red-deep: #b42420;
+  --c-red-soft: #fde3e1;
+
+  /* surfaces */
+  --glass: rgba(255, 255, 255, 0.62);
+  --glass-strong: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.9);
+  --glass-orange: rgba(254, 94, 14, 0.16);
+  --glass-blur: blur(18px) saturate(1.4);
+  --shadow-1: 0 1px 2px rgba(20, 16, 8, 0.04), 0 2px 8px rgba(20, 16, 8, 0.04);
+  --shadow-2: 0 8px 28px rgba(20, 16, 8, 0.08), 0 2px 6px rgba(20, 16, 8, 0.04);
+  --shadow-3: 0 24px 60px rgba(20, 16, 8, 0.14), 0 4px 12px rgba(20, 16, 8, 0.06);
+
+  /* shape and motion */
+  --r-xs: 8px;
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 20px;
+  --r-xl: 24px;
+  --r-pill: 999px;
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --t-fast: 150ms;
+  --t-mid: 240ms;
+  --t-slow: 520ms;
+
+  /* type */
+  --font: 'Urbanist', ui-sans-serif, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+  --fs-display: 64px;
+  --fs-h1: 40px;
+  --fs-big: 44px;
+
+  /* app tokens, mapped onto the palette */
+  --lf-bg: var(--c-canvas);
+  --lf-canvas: var(--c-surface);
+  --lf-surface: var(--c-surface);
+  --lf-subtle-surface: var(--c-surface-2);
+  --lf-hover-surface: var(--c-surface-3);
+  --lf-text: var(--c-ink);
+  --lf-text-muted: var(--c-muted);
+  --lf-text-tertiary: var(--c-faint);
+  --lf-border: var(--c-line);
+  --lf-border-strong: var(--c-line-2);
+  --lf-blue: var(--c-orange);
+  --lf-blue-soft: var(--c-orange-tint);
+  --lf-blue-line: var(--c-orange-2);
+  --lf-green: var(--c-ink);
+  --lf-green-soft: var(--c-surface-3);
+  --lf-amber: var(--c-yellow-deep);
+  --lf-amber-soft: var(--c-yellow-soft);
+  --lf-red: var(--c-red);
+  --lf-red-soft: var(--c-red-soft);
+  --lf-radius-sm: var(--r-xs);
+  --lf-radius-md: var(--r-sm);
+  --lf-radius-lg: var(--r-lg);
+  --lf-motion-fast: var(--t-fast);
+  --lf-motion-mid: var(--t-mid);
+  --lf-motion-slow: var(--t-slow);
+
+  /* Hairline drawing */
+  --hairline-plate: #ffffff;
+  --hairline-hi: #1b1e24;
+  --hairline-edge: #a19d95;
+  --hairline-mid: #c4c0b7;
+  --hairline-lo: #e0ddd5;
+  --hairline-stroke: 0.9;
+}
