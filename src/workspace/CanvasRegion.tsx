@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { store, useUi } from '../app/store';
 import { focusComponent, focusSelection } from '../camera/commands';
 import { camera, useCamera } from '../camera/controller';
@@ -9,6 +9,7 @@ import type { Session } from '../domain/types';
 import { nextUnitAt } from '../features/follow-product/FollowCard';
 import { IcoFit, IcoFocus, IcoFollow, IcoMinus, IcoPlus } from '../ui/Icons';
 import { Scene } from '../vector/Scene';
+import { ModeBar, ModePanel } from './ModeBar';
 import { StatusRail } from './StatusRail';
 import { useWorkspace, workspace } from './workspaceStore';
 
@@ -22,6 +23,7 @@ export function CanvasRegion() {
   const s = useUi();
   const ref = useRef<HTMLElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
+  const [panel, setPanel] = useState<HTMLElement | null>(null);
 
   useLayoutEffect(() => {
     const el = ref.current, bot = bottom.current;
@@ -31,14 +33,16 @@ export function CanvasRegion() {
       if (!W || !H) return;
       const inset = W < 700 ? 12 : 20;
       const floor = Math.min(H, bot.offsetTop) - 8;
-      camera.setSafe({ x: inset, y: TOP_RESERVE, w: W - inset * 2, h: floor - TOP_RESERVE });
+      const left = panel ? panel.offsetLeft + panel.offsetWidth + 12 : inset;
+      camera.setSafe({ x: left, y: TOP_RESERVE, w: W - left - inset, h: floor - TOP_RESERVE });
     };
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     ro.observe(bot);
+    if (panel) ro.observe(panel);
     measure();
     return () => ro.disconnect();
-  }, []);
+  }, [panel]);
 
   return (
     <main ref={ref} className="ws-canvas" aria-label="Production canvas">
@@ -56,8 +60,11 @@ export function CanvasRegion() {
           Press <b>Start</b> to release the first {s.config.intake.feedReleaseSize} units.
         </div>
       )}
+      <ModePanel s={s} panelRef={setPanel} />
       <div className="ov ov-bottom" ref={bottom}>
-        <div className="ob-left" />
+        <div className="ob-left">
+          <ModeBar />
+        </div>
         <StatusRail />
         <div className="ob-right">
           <CameraControls s={s} />

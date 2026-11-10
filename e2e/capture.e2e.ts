@@ -83,6 +83,30 @@ test.describe('capture', () => {
         await page.waitForTimeout(400);
       }
       await shot('zoomed');
+      if (!isV2) return;
+
+      await ws(page, 'select', null);
+      await ws(page, 'mode', 'diagnose');
+      await page.keyboard.press('f');
+      await page.waitForTimeout(600);
+      await shot('diagnose');
+      await ws(page, 'mode', 'operate');
+      await shot('operate');
+      await ws(page, 'mode', 'experiment');
+      await page.locator('.mode-panel').getByRole('button', { name: /Capture baseline/ }).click();
+      await page.evaluate(() => {
+        const st = (window as unknown as { lfStore: Lf['store'] }).lfStore;
+        st.command({ kind: 'INJECT_FAULT', code: 'ROB_VACUUM_LOSS' });
+        st.fastForward(300);
+      });
+      await page.locator('.mode-panel').getByRole('button', { name: /Compare at/ }).click();
+      await page.waitForTimeout(300);
+      await shot('experiment');
+      await ws(page, 'mode', 'explore');
+      await ws(page, 'layer', 'capacity');
+      await shot('layer-capacity');
+      await ws(page, 'layer', 'energy');
+      await shot('layer-energy');
     });
   }
 });

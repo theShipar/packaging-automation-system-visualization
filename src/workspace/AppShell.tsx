@@ -11,7 +11,8 @@ import { ShortcutsDialog } from './ShortcutsDialog';
 import { ToolDrawer } from './ToolDrawer';
 import { TopCommandBar } from './TopCommandBar';
 import { WorkspaceRail } from './WorkspaceRail';
-import { useWorkspace, workspace } from './workspaceStore';
+import { enterMode } from './ModeBar';
+import { useWorkspace, workspace, type Layer, type Mode } from './workspaceStore';
 
 const typing = (t: EventTarget | null) => t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement || (t instanceof HTMLElement && t.isContentEditable);
 
@@ -77,6 +78,8 @@ export function AppShell() {
         focusStation(id);
       },
       openTool: workspace.openTool.bind(workspace),
+      mode: (m: Mode) => enterMode(m),
+      layer: (l: Layer) => workspace.setLayer(l),
     };
     (window as unknown as { lfCamera: unknown }).lfCamera = camera;
   }, []);

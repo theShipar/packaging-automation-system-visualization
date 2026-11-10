@@ -31,6 +31,10 @@ export function Inspector({ id }: { id: StationId }) {
   const v = stationView(s, id);
   const open = s.faults.filter((f) => f.station === id && isOpenFault(f));
   const onComp = (c: string | null) => workspace.selectComponent(id, c);
+  const body = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (body.current) body.current.scrollTop = 0;
+  }, [tab, id]);
 
   return (
     <div className="insp" aria-label={`Machine details: ${meta.name}`}>
@@ -78,7 +82,7 @@ export function Inspector({ id }: { id: StationId }) {
           </button>
         ))}
       </div>
-      <div className="insp-body" role="tabpanel" id="insp-panel" aria-labelledby={`insp-tab-${tab}`}>
+      <div className="insp-body" role="tabpanel" id="insp-panel" aria-labelledby={`insp-tab-${tab}`} ref={body}>
         {tab === 'overview' && <Overview s={s} id={id} />}
         {tab === 'parts' && <Components s={s} id={id} comp={comp} onComp={onComp} />}
         {tab === 'activity' && <Logs s={s} id={id} />}
@@ -279,7 +283,7 @@ export function MaterialRow({ s, id }: { s: Session; id: MaterialId }) {
 
 const STEP_LABELS = ['Raised', 'Acknowledged', 'Work order', 'Repair', 'Resolved', 'Recovered'];
 
-function FaultCard({ s, f }: { s: Session; f: Fault }) {
+export function FaultCard({ s, f }: { s: Session; f: Fault }) {
   const def = FAULT_DEF[f.code];
   const wo = s.workOrders.find((w) => w.id === f.workOrderId);
   const stage = f.status === 'recovered' ? 5 : f.status === 'resolved' ? 4 : f.status === 'repairInProgress' ? 3 : wo ? 2 : f.status === 'acknowledged' ? 1 : 0;

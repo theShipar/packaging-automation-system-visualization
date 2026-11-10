@@ -2,10 +2,11 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { store, useUi } from '../app/store';
 import { formatClock, lineKpis } from '../domain/kpis';
 import { SPEEDS, type Session } from '../domain/types';
-import { IcoBell, IcoKeyboard, IcoMore, IcoPause, IcoPlay, IcoReset, IcoSave, IcoSearch, IcoStep } from '../ui/Icons';
+import { IcoBell, IcoFit, IcoKeyboard, IcoLab, IcoMore, IcoPause, IcoPlay, IcoReset, IcoSave, IcoSearch, IcoStep } from '../ui/Icons';
 import { focusComponent, focusStation } from '../camera/commands';
 import { alertsOf, type Alert } from './alerts';
-import { RestartDialog } from './RestartDialog';
+import { RestartDialog, RestoreScenarioDialog } from './RestartDialog';
+import { camera } from '../camera/controller';
 import { usePopover } from './usePopover';
 import { workspace } from './workspaceStore';
 
@@ -15,7 +16,7 @@ const LINE_STATE: Record<Session['status'], string> = { ready: 'Ready', running:
 export function TopCommandBar({ onHelp }: { onHelp: () => void }) {
   const s = useUi();
   const k = lineKpis(s);
-  const [restart, setRestart] = useState(false);
+  const [dialog, setDialog] = useState<'restart' | 'restore' | null>(null);
   const faulted = s.faults.some((f) => f.kind === 'stop' && f.status !== 'recovered' && f.status !== 'resolved');
   const state = faulted && s.status === 'running' ? 'Faulted' : LINE_STATE[s.status];
   const pct = Math.min(1, k.shipped / Math.max(1, s.batch.committedGood));
@@ -81,9 +82,10 @@ export function TopCommandBar({ onHelp }: { onHelp: () => void }) {
         <button className="icon-btn" onClick={() => void store.save()} title="Save snapshot of this run to the browser" aria-label="Save snapshot">
           <IcoSave />
         </button>
-        <RunMenu s={s} onRestart={() => setRestart(true)} onHelp={onHelp} />
+        <RunMenu s={s} onDialog={setDialog} onHelp={onHelp} />
       </div>
-      {restart && <RestartDialog onClose={() => setRestart(false)} />}
+      {dialog === 'restart' && <RestartDialog onClose={() => setDialog(null)} />}
+      {dialog === 'restore' && <RestoreScenarioDialog onClose={() => setDialog(null)} />}
     </header>
   );
 }
@@ -205,7 +207,7 @@ function Alerts({ s }: { s: Session }) {
   );
 }
 
-function RunMenu({ s, onRestart, onHelp }: { s: Session; onRestart: () => void; onHelp: () => void }) {
+function RunMenu({ s, onDialog, onHelp }: { s: Session; onDialog: (d: 'restart' | 'restore') => void; onHelp: () => void }) {
   const { open, setOpen, ref } = usePopover();
   const pick = (fn: () => void) => () => {
     setOpen(false);
@@ -225,11 +227,25 @@ function RunMenu({ s, onRestart, onHelp }: { s: Session; onRestart: () => void; 
               <small>Deterministic step of the same engine, then pause</small>
             </span>
           </button>
-          <button role="menuitem" className="menu-row" onClick={pick(onRestart)}>
+          <button role="menuitem" className="menu-row" onClick={pick(() => (store.setFollow(null), camera.fit()))}>
+            <IcoFit />
+            <span>
+              Reset view
+              <small>Fit the whole line; no run data changes</small>
+            </span>
+          </button>
+          <button role="menuitem" className="menu-row" onClick={pick(() => onDialog('restore'))}>
+            <IcoLab />
+            <span>
+              Restore scenario…
+              <small>Reload the scenario from its start; asks first</small>
+            </span>
+          </button>
+          <button role="menuitem" className="menu-row" onClick={pick(() => onDialog('restart'))}>
             <IcoReset />
             <span>
               Restart run…
-              <small>Back to the batch seed; asks for confirmation</small>
+              <small>Same seed, current settings; asks first</small>
             </span>
           </button>
           <button role="menuitem" className="menu-row" onClick={pick(onHelp)}>
