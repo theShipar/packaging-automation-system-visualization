@@ -46,3 +46,24 @@ export function StationLink({ station, comp, tab, className, children }: { stati
     </a>
   );
 }
+
+/** Opens the asset page and selects the same part on the canvas: one selection, two views. */
+export function AssetLink({ station, comp, className, children }: { station: StationId; comp: string; className?: string; children: ReactNode }) {
+  const q = new URLSearchParams({ tool: 'assets', item: comp });
+  return (
+    <a
+      className={className}
+      href={`/production?${q}`}
+      onClick={(e) => {
+        if (!plain(e)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        workspace.openTool('assets', comp);
+        workspace.selectComponent(station, comp);
+        focusComponent(station, comp);
+      }}
+    >
+      {children}
+    </a>
+  );
+}

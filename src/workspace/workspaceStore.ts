@@ -14,6 +14,9 @@ export type Layer = 'flow' | 'capacity' | 'health' | 'quality' | 'energy';
 export const MODES: Mode[] = ['explore', 'operate', 'diagnose', 'experiment'];
 export const TOOLS: Tool[] = ['batches', 'scenarios', 'analytics', 'assets', 'events', 'maintenance', 'quality', 'reports', 'settings'];
 export const INSPECTOR_WIDTHS = { min: 320, standard: 380, max: 440 } as const;
+export const INSPECTOR_PRESETS = [INSPECTOR_WIDTHS.min, INSPECTOR_WIDTHS.standard, INSPECTOR_WIDTHS.max] as const;
+/** Nearest preset width, for snapping after a drag. */
+export const snapWidth = (w: number) => INSPECTOR_PRESETS.reduce((a, b) => (Math.abs(b - w) < Math.abs(a - w) ? b : a));
 
 export interface WorkspaceState {
   mode: Mode;
@@ -74,8 +77,10 @@ class WorkspaceStore {
     const open = opts.inspector ?? (this.state.inspectorOpen || this.state.autoInspector);
     this.set({ station, comp: sameStation ? this.state.comp : null, inspectorOpen: open, inspectorTab: sameStation ? this.state.inspectorTab : 'overview' });
   }
+  /** One selection everywhere: an open asset page follows the selected part. */
   selectComponent(station: StationId, comp: string | null) {
-    this.set({ station, comp, inspectorOpen: this.state.inspectorOpen || this.state.autoInspector, inspectorTab: comp ? 'parts' : this.state.inspectorTab });
+    const followAsset = comp && this.state.tool === 'assets' && this.state.item !== null;
+    this.set({ station, comp, inspectorOpen: this.state.inspectorOpen || this.state.autoInspector, inspectorTab: comp ? 'parts' : this.state.inspectorTab, ...(followAsset ? { item: comp } : {}) });
   }
   setHover(id: string | null) {
     this.set({ hover: id });

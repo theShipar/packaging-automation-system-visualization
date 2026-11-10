@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { store, useUi } from '../app/store';
 import { COMPONENTS, FAULTS, FAULT_DEF, MATERIALS, PERMISSIONS, ROLE_LABEL, SETTINGS_SCHEMA, STATION_META } from '../domain/config';
 import { isOpenFault, stagingUnits } from '../domain/engine';
@@ -7,6 +7,7 @@ import type { Fault, FaultCode, MaterialId, Session, StationConfig, StationId } 
 import { IcoClose } from '../ui/Icons';
 import { nextUnitAt } from './follow-product/FollowCard';
 import { StatusDot, StatusPill, statusLabel } from '../ui/Status';
+import { focusComponent, hasGeometry } from '../camera/commands';
 import { StationThumb } from '../vector/StationThumb';
 import { ToolLink } from '../workspace/links';
 import { useWorkspace, workspace, type InspectorTab } from '../workspace/workspaceStore';
@@ -47,7 +48,7 @@ export function Inspector({ id }: { id: StationId }) {
         <h2 className="insp-name">{meta.name}</h2>
         <div className="muted insp-role">{meta.role}</div>
         <div className="insp-thumb">
-          <StationThumb id={id} hiComp={comp ?? open[0]?.componentId ?? null} focus />
+          <StationThumb id={id} hiComp={comp ?? open[0]?.componentId ?? null} focus onPart={(c) => onComp(comp === c ? null : c)} />
         </div>
         <div className="insp-kpis">
           <Tile t="Throughput" v={v.throughputHr} unit="/h" />
@@ -105,13 +106,16 @@ function Tile({ t, v, unit, n, sm, wide, warn }: { t: string; v: ReactNode; unit
 
 /* ------------------------------------------------------------------ overview */
 
+/** Scan first: state, what is in the machine, the two buffers, time in state. Everything else sits under More detail. */
 function Overview({ s, id }: { s: Session; id: StationId }) {
   const v = stationView(s, id);
   const st = s.stations[id];
   const faults = s.faults.filter((f) => f.station === id).slice(-3).reverse();
   const total = Object.values(st.timeIn).reduce((a, b) => a + b, 0);
   const mats = MATERIALS.filter((m) => m.station === id);
+  const urgent = mats.filter((m) => s.materials[m.id].available <= s.materials[m.id].reorderPoint);
   const next = nextUnitAt(s, id);
+  const past = faults.filter((f) => !isOpenFault(f));
   return (
     <>
       {faults.filter(isOpenFault).map((f) => (
@@ -138,20 +142,21 @@ function Overview({ s, id }: { s: Session; id: StationId }) {
           </div>
         )}
       </div>
-      <div>
-        <div className="sec-t">Buffers</div>
-        <div className="tiles">
-          <Tile t="Input queue" v={v.inQueue} unit={`/ ${v.inCap}`} n={v.incoming > 0 ? `${v.incoming} arriving` : undefined} warn={v.inQueue >= v.inCap} />
-          <Tile t={id === 'dispatch' ? 'Staged in cases' : 'Output queue'} v={v.outQueue} unit={`/ ${v.outCap}`} warn={v.outQueue >= v.outCap} />
-          <Tile t="Completed this run" v={v.completed.toLocaleString()} />
-          <Tile t="Energy" v={v.energyKWh.toFixed(2)} unit="kWh" />
-        </div>
+      <div className="buf-line">
+        <span className={v.inQueue >= v.inCap ? 'full' : ''}>
+          <span className="k">Input</span> <b className="num">{v.inQueue}</b>
+          <span className="of num">/{v.inCap}</span>
+          {v.incoming > 0 && <span className="tert"> · {v.incoming} arriving</span>}
+        </span>
+        <span className={v.outQueue >= v.outCap ? 'full' : ''}>
+          <span className="k">{id === 'dispatch' ? 'Staged' : 'Output'}</span> <b className="num">{v.outQueue}</b>
+          <span className="of num">/{v.outCap}</span>
+        </span>
       </div>
-      <StationSpecific s={s} id={id} />
-      {mats.length > 0 && (
+      {urgent.length > 0 && (
         <div>
-          <div className="sec-t">Materials</div>
-          {mats.map((m) => (
+          <div className="sec-t">Materials low</div>
+          {urgent.map((m) => (
             <MaterialRow key={m.id} s={s} id={m.id} />
           ))}
         </div>
@@ -181,21 +186,39 @@ function Overview({ s, id }: { s: Session; id: StationId }) {
           </>
         )}
       </div>
-      {faults.filter((f) => !isOpenFault(f)).length > 0 && (
-        <div>
-          <div className="sec-t">Recent incidents</div>
-          {faults
-            .filter((f) => !isOpenFault(f))
-            .map((f) => (
-              <div key={f.id} className="log-row">
-                <time className="tert num">{formatClock(f.raisedAt)}</time>
-                <span>
-                  {f.code} · {f.status} {f.workOrderId && <span className="tert">({f.workOrderId})</span>}
-                </span>
-              </div>
-            ))}
+      <details className="more">
+        <summary>More detail</summary>
+        <div className="more-body">
+          <div className="tiles">
+            <Tile t="Completed this run" v={v.completed.toLocaleString()} />
+            <Tile t="Energy (simulated)" v={v.energyKWh.toFixed(2)} unit="kWh" />
+          </div>
+          <StationSpecific s={s} id={id} />
+          {mats.length > urgent.length && (
+            <div>
+              <div className="sec-t">Materials</div>
+              {mats
+                .filter((m) => !urgent.includes(m))
+                .map((m) => (
+                  <MaterialRow key={m.id} s={s} id={m.id} />
+                ))}
+            </div>
+          )}
+          {past.length > 0 && (
+            <div>
+              <div className="sec-t">Recent incidents</div>
+              {past.map((f) => (
+                <div key={f.id} className="log-row">
+                  <time className="tert num">{formatClock(f.raisedAt)}</time>
+                  <span>
+                    {f.code} · {f.status} {f.workOrderId && <span className="tert">({f.workOrderId})</span>}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </details>
     </>
   );
 }
@@ -322,35 +345,50 @@ function Components({ s, id, comp, onComp }: { s: Session; id: StationId; comp: 
   const list = COMPONENTS.filter((c) => c.station === id);
   const st = s.stations[id];
   const hours = (st.timeIn.processing / 3600).toFixed(2);
+  const listRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    listRef.current?.querySelector('.comp-row.on')?.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }, [comp]);
   return (
     <>
       <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-        Select a component to highlight it on the drawing. Hover parts on the canvas to identify them.
+        Select a part to highlight it on the line and in the preview. Click parts in the preview, or hover them on the canvas.
       </p>
-      {list.map((c) => {
-        const faults = s.faults.filter((f) => f.componentId === c.id);
-        const openF = faults.find(isOpenFault);
-        const blocked = st.blockReason && FAULTS.some((f) => f.componentId === c.id && f.kind === 'material' && openF?.code === f.code);
-        const health = openF ? (openF.kind === 'material' || blocked ? 'attention' : 'fault') : 'good';
-        return (
-          <button key={c.id} className={`comp-row${comp === c.id ? ' on' : ''}`} onClick={() => onComp(comp === c.id ? null : c.id)} aria-pressed={comp === c.id}>
-            <b style={{ fontWeight: 550 }}>{c.name}</b>
-            <span className={`health ${health}`}>{health === 'good' ? 'Good' : health === 'attention' ? 'Attention' : 'Fault'}</span>
-            <span className="mono">{c.id}</span>
-            <span className="tert" style={{ fontSize: 11 }}>
-              {c.kind}
-            </span>
-            {comp === c.id && (
-              <span style={{ gridColumn: '1 / -1', fontSize: 12, marginTop: 4 }} className="muted">
-                {c.note}. {st.completed.toLocaleString()} cycles · {hours} h running this run · {faults.length} incident{faults.length === 1 ? '' : 's'} this run.{' '}
-                <ToolLink tool="assets" item={c.id}>
-                  Asset page →
-                </ToolLink>
-              </span>
-            )}
-          </button>
-        );
-      })}
+      <div className="comp-list" ref={listRef}>
+        {list.map((c) => {
+          const faults = s.faults.filter((f) => f.componentId === c.id);
+          const openF = faults.find(isOpenFault);
+          const blocked = st.blockReason && FAULTS.some((f) => f.componentId === c.id && f.kind === 'material' && openF?.code === f.code);
+          const health = openF ? (openF.kind === 'material' || blocked ? 'attention' : 'fault') : 'good';
+          const drawn = hasGeometry(id, c.id);
+          const on = comp === c.id;
+          return (
+            <div key={c.id} className={`comp-row${on ? ' on' : ''}${drawn ? '' : ' nogeo'}`}>
+              <button className="comp-main" onClick={() => onComp(on ? null : c.id)} aria-pressed={on} disabled={!drawn} title={drawn ? undefined : 'Not drawn on this machine figure'}>
+                <b style={{ fontWeight: 550 }}>{c.name}</b>
+                <span className={`health ${health}`}>{health === 'good' ? 'Good' : health === 'attention' ? 'Attention' : 'Fault'}</span>
+                <span className="mono">{c.id}</span>
+                <span className="tert" style={{ fontSize: 11 }}>
+                  {drawn ? c.kind : 'not drawn'}
+                </span>
+              </button>
+              {on && (
+                <div className="comp-more muted">
+                  {c.note}. {st.completed.toLocaleString()} cycles · {hours} h running this run · {faults.length} incident{faults.length === 1 ? '' : 's'} this run.
+                  <div className="row" style={{ marginTop: 8 }}>
+                    <button className="btn sm" onClick={() => focusComponent(id, c.id)}>
+                      Focus on line
+                    </button>
+                    <ToolLink tool="assets" item={c.id} className="btn sm ghost">
+                      Asset page →
+                    </ToolLink>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </>
   );
 }
@@ -374,7 +412,7 @@ function Logs({ s, id }: { s: Session; id: StationId }) {
       {rows.length === 0 && <div className="empty">No events for this station yet.</div>}
       <div>
         {rows.map((e) => (
-          <div key={e.id} className="log-row">
+          <div key={e.id} className="log-row" data-station={e.stationId ?? undefined} data-t={e.virtualAt}>
             <time className="tert num">{formatClock(e.virtualAt)}</time>
             <span>
               <span className={`sev ${e.severity}`} />

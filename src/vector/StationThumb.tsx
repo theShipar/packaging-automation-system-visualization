@@ -1,17 +1,20 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { useFrame } from '../app/store';
+import { COMPONENTS } from '../domain/config';
 import type { StationId } from '../domain/types';
 import { CAM, PLACE } from '../transport/layout';
 import { machinePose } from '../transport/poses';
 import { makeView, restPose, type MachinePose } from './builder';
 import { FIGURES } from './figures';
-import { bounds, cam, fit, proj, type V3 } from './iso';
+import { bounds, cam, fit, hull, poly, proj, type Pt, type V3 } from './iso';
 import { Shapes } from './ProductLayer';
 import { drawStation } from './sceneModel';
 
 const TW = 320;
 const TH = 190;
 const AZ = (CAM.az * 180) / Math.PI;
+const COMP_NAME = Object.fromEntries(COMPONENTS.map((c) => [c.id, c.name])) as Record<string, string>;
+const area = (h: Pt[]) => Math.abs(h.reduce((a, p, i) => { const q = h[(i + 1) % h.length]; return a + p[0] * q[1] - q[0] * p[1]; }, 0)) / 2;
 
 /** Same handedness as on the line: row 2 machines are drawn mirrored. */
 function useThumbView(id: StationId, fill: number) {
@@ -28,11 +31,19 @@ function useThumbView(id: StationId, fill: number) {
   }, [id, fill]);
 }
 
-function Drawing({ id, pose, hiComp, focus, fill }: { id: StationId; pose: MachinePose; hiComp: string | null; focus: boolean; fill: number }) {
+function Drawing({ id, pose, hiComp, focus, fill, onPart }: { id: StationId; pose: MachinePose; hiComp: string | null; focus: boolean; fill: number; onPart?: (comp: string) => void }) {
   const view = useThumbView(id, fill);
-  const d = drawStation(id, pose, hiComp, view);
+  const [hover, setHover] = useState<string | null>(null);
+  const d = drawStation(id, pose, hover ?? hiComp, view);
+  // Largest first so small parts sit on top and stay clickable.
+  const hits = onPart
+    ? Object.entries(d.compPts)
+        .map(([c, pts]) => ({ c, h: hull(pts) }))
+        .filter((x) => x.h.length > 2)
+        .sort((a, b) => area(b.h) - area(a.h))
+    : [];
   return (
-    <svg viewBox={`0 0 ${TW} ${TH}`} className="hl thumb" aria-hidden>
+    <svg viewBox={`0 0 ${TW} ${TH}`} className="hl thumb" aria-hidden={!onPart} role={onPart ? 'group' : undefined} aria-label={onPart ? 'Machine parts' : undefined}>
       <g className={focus ? 'focus' : undefined}>
         <Shapes shapes={d.back} />
         {[...d.fronts]
@@ -41,14 +52,29 @@ function Drawing({ id, pose, hiComp, focus, fill }: { id: StationId; pose: Machi
             <Shapes key={g.name} shapes={g.shapes} />
           ))}
       </g>
+      {hits.map(({ c, h }) => (
+        <path
+          key={c}
+          d={poly(h)}
+          className="thumb-hit"
+          data-comp={c}
+          role="button"
+          aria-label={`${COMP_NAME[c] ?? c} (${c})`}
+          onPointerEnter={() => setHover(c)}
+          onPointerLeave={() => setHover((x) => (x === c ? null : x))}
+          onClick={() => onPart?.(c)}
+        >
+          <title>{COMP_NAME[c] ?? c}</title>
+        </path>
+      ))}
     </svg>
   );
 }
 
-/** The same station geometry and camera direction, framed on its own for the inspector header. */
-export function StationThumb({ id, hiComp, focus = false }: { id: StationId; hiComp: string | null; focus?: boolean }) {
+/** The same station geometry and camera direction, framed on its own for the inspector header. Pass onPart to make parts clickable. */
+export function StationThumb({ id, hiComp, focus = false, onPart }: { id: StationId; hiComp: string | null; focus?: boolean; onPart?: (comp: string) => void }) {
   const s = useFrame();
-  return <Drawing id={id} pose={machinePose(s, id, 0)} hiComp={hiComp} focus={focus} fill={0.9} />;
+  return <Drawing id={id} pose={machinePose(s, id, 0)} hiComp={hiComp} focus={focus} fill={0.9} onPart={onPart} />;
 }
 
 const REST = restPose();

@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { exportEventsCsv } from '../app/exports';
 import { useUi } from '../app/store';
-import { STATIONS, STATION_META } from '../domain/config';
+import { COMPONENTS, STATIONS, STATION_META } from '../domain/config';
 import { buildHistory } from '../domain/history';
 import { formatClock } from '../domain/kpis';
 import { IcoDownload } from '../ui/Icons';
 import { PageHead, fmtDate } from '../ui/Page';
+import { StationLink } from '../workspace/links';
 import { useWorkspace, workspace } from '../workspace/workspaceStore';
 import type { StationId } from '../domain/types';
+
+/** The part an event names, if any (fault messages carry the component ID). */
+const compIn = (msg: string) => COMPONENTS.find((c) => msg.includes(c.id))?.id ?? null;
 
 const NOISE = new Set(['STATION_CYCLE_STARTED', 'STATION_CYCLE_COMPLETED', 'UNIT_RELEASED', 'MATERIAL_CONSUMED', 'QA_INSPECTION_PASSED', 'CASE_OPENED', 'TRANSFER_RESERVED', 'TRANSFER_STARTED', 'TRANSFER_COMPLETED']);
 
@@ -115,7 +119,15 @@ export function EventsPage() {
                   <span className={`sev ${r.severity}`} />
                   <span className="mono">{r.type}</span>
                 </td>
-                <td>{r.station ? STATION_META[r.station as keyof typeof STATION_META]?.short : '—'}</td>
+                <td>
+                  {r.station && r.station in STATION_META ? (
+                    <StationLink station={r.station as StationId} comp={compIn(r.message)} className="plain-link">
+                      {STATION_META[r.station as StationId].short}
+                    </StationLink>
+                  ) : (
+                    '—'
+                  )}
+                </td>
                 <td className="mono">{r.batch}</td>
                 <td>{r.message}</td>
               </tr>

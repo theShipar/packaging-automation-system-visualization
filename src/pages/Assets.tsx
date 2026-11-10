@@ -6,10 +6,12 @@ import { effectiveStatus, formatClock } from '../domain/kpis';
 import { PageHead, fmtDate } from '../ui/Page';
 import { StatusPill } from '../ui/Status';
 import { StationThumb } from '../vector/StationThumb';
-import { StationLink, ToolLink } from '../workspace/links';
+import { AssetLink, StationLink, ToolLink } from '../workspace/links';
+import { useWorkspace } from '../workspace/workspaceStore';
 
 export function AssetsPage() {
   const s = useUi();
+  const sel = useWorkspace().comp;
   return (
     <div className="page">
       <PageHead crumbs="Operations" title="Assets" sub={`${COMPONENTS.length} simulated components across six stations. IDs follow the plant naming scheme; none are connected to real devices.`} />
@@ -20,7 +22,9 @@ export function AssetsPage() {
             <div key={m.id} className="card">
               <div className="card-h">
                 <h3>
-                  <span className="tert num">{m.no}</span> {m.name}
+                  <StationLink station={m.id} className="plain-link">
+                    <span className="tert num">{m.no}</span> {m.name}
+                  </StationLink>
                 </h3>
                 <StatusPill status={effectiveStatus(s, m.id)} />
               </div>
@@ -30,13 +34,13 @@ export function AssetsPage() {
               {comps.map((c) => {
                 const open = s.faults.find((f) => f.componentId === c.id && isOpenFault(f));
                 return (
-                  <ToolLink key={c.id} tool="assets" item={c.id} className="asset-row">
+                  <AssetLink key={c.id} station={m.id} comp={c.id} className={`asset-row${sel === c.id ? ' on' : ''}`}>
                     <span>{c.name}</span>
                     <span className="row">
                       {open && <span className="tag crit">{open.code}</span>}
                       <span className="mono tert">{c.id}</span>
                     </span>
-                  </ToolLink>
+                  </AssetLink>
                 );
               })}
             </div>
