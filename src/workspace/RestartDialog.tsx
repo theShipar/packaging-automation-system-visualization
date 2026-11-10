@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { exportJson } from '../app/exports';
 import { store, useUi } from '../app/store';
+import { formatClock } from '../domain/kpis';
+import { trapTab } from '../ui/trapTab';
 import { SCENARIOS } from '../domain/scenarios';
 
 /** Destructive run actions always ask, state their scope, and offer to keep a copy first. */
@@ -23,8 +26,8 @@ export function ConfirmDialog({ title, children, confirm, onConfirm, onClose, of
       prev?.focus();
     };
   }, [onClose]);
-  return (
-    <div className="modal-bg" role="dialog" aria-modal aria-labelledby="confirm-h">
+  return createPortal(
+    <div className="modal-bg" role="dialog" aria-modal aria-labelledby="confirm-h" onKeyDown={trapTab}>
       <div className="modal">
         <h2 id="confirm-h">{title}</h2>
         <div className="muted" style={{ margin: 0 }}>
@@ -51,7 +54,8 @@ export function ConfirmDialog({ title, children, confirm, onConfirm, onClose, of
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -74,4 +78,16 @@ export function RestoreScenarioDialog({ onClose }: { onClose: () => void }) {
       Reloads the scenario from its start: seed {sc.seed}, its settings and its scripted events. Settings you changed in this run are reset. This run's {s.events.length.toLocaleString()} events are discarded. Camera and selection are not affected.
     </ConfirmDialog>
   );
+}
+
+/** Ask before an action replaces a run that has already moved; a run still at 00:00:00 is replaced without asking. */
+export function useConfirmReplace() {
+  const [pending, setPending] = useState<{ title: string; confirm: string; run: () => void } | null>(null);
+  const ask = (title: string, confirm: string, run: () => void) => (store.session.t > 0 ? setPending({ title, confirm, run }) : run());
+  const dialog = pending && (
+    <ConfirmDialog title={pending.title} confirm={pending.confirm} offerCopy onConfirm={pending.run} onClose={() => setPending(null)}>
+      This replaces run {store.session.runId} at virtual {formatClock(store.session.t)}. Its events and counts are not kept unless you download them first.
+    </ConfirmDialog>
+  );
+  return { ask, dialog };
 }

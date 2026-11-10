@@ -5,6 +5,7 @@ import { SCENARIOS, explainComparison, runScenario, type RunResult } from '../do
 import { LineChart } from '../ui/Charts';
 import { PageHead, pct } from '../ui/Page';
 import { ToolLink } from '../workspace/links';
+import { useConfirmReplace } from '../workspace/RestartDialog';
 import { workspace } from '../workspace/workspaceStore';
 
 const cache = new Map<string, ReturnType<typeof runScenario>>();
@@ -14,6 +15,7 @@ const run = (id: string) => {
 };
 
 export function SimulationPage() {
+  const replace = useConfirmReplace();
   return (
     <div className="page">
       <PageHead crumbs="Scenario lab" title="Scenario lab" sub="Each scenario is a seeded, scripted run of the same engine. Results are reproducible: same seed and script, same numbers." />
@@ -28,13 +30,14 @@ export function SimulationPage() {
               <ToolLink className="btn sm blue" tool="scenarios" item={sc.id}>
                 Run and compare
               </ToolLink>
-              <button className="btn sm" onClick={() => store.loadScenario(sc.id)}>
+              <button className="btn sm" onClick={() => replace.ask(`Load “${sc.title}” on the line?`, 'Load scenario', () => store.loadScenario(sc.id))}>
                 Load on line
               </button>
             </div>
           </div>
         ))}
       </div>
+      {replace.dialog}
     </div>
   );
 }
@@ -52,6 +55,7 @@ const ROWS: [keyof RunResult, string, (v: RunResult[keyof RunResult]) => string]
 ];
 
 export function ScenarioRunPage({ id }: { id: string }) {
+  const replace = useConfirmReplace();
   const sc = SCENARIOS.find((s) => s.id === id);
   const data = useMemo(() => (sc ? { base: run('baseline'), variant: run(sc.id) } : null), [sc]);
   if (!sc || !data)
@@ -63,6 +67,10 @@ export function ScenarioRunPage({ id }: { id: string }) {
     );
   const { base, variant } = data;
   const isBase = sc.id === 'baseline';
+  const load = () => {
+    store.loadScenario(sc.id);
+    workspace.openTool(null);
+  };
   return (
     <div className="page">
       <BackToScenarios />
@@ -73,10 +81,7 @@ export function ScenarioRunPage({ id }: { id: string }) {
         actions={
           <button
             className="btn primary"
-            onClick={() => {
-              store.loadScenario(sc.id);
-              workspace.openTool(null);
-            }}
+            onClick={() => replace.ask(`Load “${sc.title}” on the line?`, 'Load and watch', load)}
           >
             Load on line and watch
           </button>
@@ -132,6 +137,7 @@ export function ScenarioRunPage({ id }: { id: string }) {
           height={170}
         />
       </div>
+      {replace.dialog}
     </div>
   );
 }

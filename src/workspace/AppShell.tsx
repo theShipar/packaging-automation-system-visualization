@@ -12,6 +12,7 @@ import { ToolDrawer } from './ToolDrawer';
 import { TopCommandBar } from './TopCommandBar';
 import { WorkspaceRail } from './WorkspaceRail';
 import { enterMode } from './ModeBar';
+import { demo, useDemo } from '../demo/demo';
 import { useWorkspace, workspace, type Layer, type Mode } from './workspaceStore';
 
 const typing = (t: EventTarget | null) => t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement || (t instanceof HTMLElement && t.isContentEditable);
@@ -36,6 +37,12 @@ export function AppShell() {
   useUi();
   const w = useWorkspace();
   const [help, setHelp] = useState(false);
+  const d = useDemo();
+  useEffect(() => {
+    const p = new URLSearchParams(location.search);
+    if (p.get('demo') === '1') demo.intro();
+    if (p.get('present') === '1') demo.setPresenting(true);
+  }, []);
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -54,6 +61,7 @@ export function AppShell() {
       if (e.key === 'f' || e.key === 'F') return camera.fit();
       if (e.key === '+' || e.key === '=') return camera.zoomBy(1.25);
       if (e.key === '-' || e.key === '_') return camera.zoomBy(1 / 1.25);
+      if (e.key === 'p' || e.key === 'P') return demo.setPresenting(!demo.get().presenting);
       if (e.key === '[' || e.key === ']') {
         const cur = workspace.get().station;
         const i = cur ? STATION_IDS.indexOf(cur) : -1;
@@ -64,7 +72,8 @@ export function AppShell() {
       if (e.key !== 'Escape') return;
       if (workspace.back()) return;
       if (store.follow) return store.setFollow(null);
-      if (workspace.get().tool) workspace.openTool(null);
+      if (workspace.get().tool) return workspace.openTool(null);
+      if (demo.get().presenting) demo.setPresenting(false);
     };
     addEventListener('keydown', key);
     return () => removeEventListener('keydown', key);
@@ -89,10 +98,11 @@ export function AppShell() {
       layer: (l: Layer) => workspace.setLayer(l),
     };
     (window as unknown as { lfCamera: unknown }).lfCamera = camera;
+    (window as unknown as { lfDemo: unknown }).lfDemo = demo;
   }, []);
 
   return (
-    <div className="shell">
+    <div className={`shell${d.presenting ? ' presenting' : ''}`}>
       <TopCommandBar onHelp={() => setHelp(true)} />
       <div className="ws-row">
         <WorkspaceRail />

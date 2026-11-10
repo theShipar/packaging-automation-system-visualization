@@ -69,7 +69,12 @@ export function SceneOverlay({ s, selected, hover, hoverComp, badges, onSelect, 
   const exit = project(c, ...FLOW_MARKS.exit);
   const hc = hoverComp ? COMP_STATION[hoverComp] : null;
   const cb = hoverComp && hc ? GEOMETRY[hc].compBounds[hoverComp] : null;
-  const tip = cb ? project(c, (cb.minX + cb.maxX) / 2, cb.minY) : null;
+  const tipTop = cb ? project(c, (cb.minX + cb.maxX) / 2, cb.minY) : null;
+  // keep the tooltip inside the safe rect (never under the inspector or a panel); flip below when there is no room above
+  const tipHalf = hoverComp ? `${COMP_NAME[hoverComp] ?? hoverComp} ${hoverComp}`.length * 3.6 + 14 : 0;
+  const flip = tipTop !== null && tipTop[1] - 8 - TIP_H < 8;
+  const tipAt = cb && tipTop ? (flip ? project(c, (cb.minX + cb.maxX) / 2, cb.maxY) : tipTop) : null;
+  const tip = tipAt ? ([Math.min(Math.max(tipAt[0], r.x + tipHalf), r.x + r.w - tipHalf), tipAt[1]] as const) : null;
 
   return (
     <div className="scene-ov" aria-hidden={false}>
@@ -124,7 +129,7 @@ export function SceneOverlay({ s, selected, hover, hoverComp, badges, onSelect, 
           );
         })}
       {tip && hoverComp && (
-        <div className="comp-tip" style={at(tip[0], tip[1] - 8, true)}>
+        <div className="comp-tip" style={flip ? at(tip[0], tip[1] + 8) : at(tip[0], tip[1] - 8, true)}>
           <b>{COMP_NAME[hoverComp] ?? hoverComp}</b> <span className="mono">{hoverComp}</span>
         </div>
       )}
@@ -137,6 +142,7 @@ function rank(t: { id: StationId; alert: boolean }, selected: StationId | null, 
 }
 
 /** Centre horizontally on the anchor; `up` places the element above it. */
+const TIP_H = 26;
 const at = (x: number, y: number, up = false) => ({ transform: `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, ${up ? '-100%' : '0'})` });
 
 /** Numeral at a distance; name, state and two numbers when hovered, selected, alerting or close. */

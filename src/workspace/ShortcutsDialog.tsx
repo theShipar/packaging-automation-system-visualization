@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { trapTab } from '../ui/trapTab';
 
 export const SHORTCUTS: [string, string][] = [
   ['Drag', 'Pan the canvas (5 px before a click becomes a drag)'],
@@ -33,7 +34,7 @@ export function ShortcutsDialog({ onClose }: { onClose: () => void }) {
     };
   }, [onClose]);
   return (
-    <div className="modal-bg" role="dialog" aria-modal aria-labelledby="keys-h" onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="modal-bg" role="dialog" aria-modal aria-labelledby="keys-h" onKeyDown={trapTab} onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <h2 id="keys-h">Keyboard shortcuts</h2>
         <dl className="keys">

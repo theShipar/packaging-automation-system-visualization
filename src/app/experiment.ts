@@ -73,12 +73,12 @@ class ExperimentStore {
     return live.commandLog.slice(b.session.commandLog.length).filter((c) => !NEUTRAL.has(c.command.kind));
   }
 
-  capture() {
+  capture(quiet = false) {
     const s = store.session;
     this.baseline = { session: structuredClone(s), runId: s.runId, t: s.t };
     this.result = null;
     this.emit();
-    store.toast(`Baseline captured at virtual ${formatClock(s.t)}`, 'success');
+    if (!quiet) store.toast(`Baseline captured at virtual ${formatClock(s.t)}`, 'success');
   }
 
   compare() {

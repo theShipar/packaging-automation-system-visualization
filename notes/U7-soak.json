@@ -1,0 +1,107 @@
+{
+  "minutes": 10,
+  "speed": "10×",
+  "start": {
+    "listeners": 241,
+    "nodes": 727,
+    "heapMB": 9.6,
+    "docs": 1,
+    "frames": 1
+  },
+  "end": {
+    "listeners": 249,
+    "nodes": 772,
+    "heapMB": 21.2,
+    "docs": 1,
+    "frames": 1
+  },
+  "samples": [
+    {
+      "listeners": 247,
+      "nodes": 757,
+      "heapMB": 11.9,
+      "docs": 1,
+      "frames": 1,
+      "wallMin": 1,
+      "virtualMin": 11.1
+    },
+    {
+      "listeners": 251,
+      "nodes": 784,
+      "heapMB": 13.9,
+      "docs": 1,
+      "frames": 1,
+      "wallMin": 2.1,
+      "virtualMin": 21.5
+    },
+    {
+      "listeners": 249,
+      "nodes": 772,
+      "heapMB": 14.2,
+      "docs": 1,
+      "frames": 1,
+      "wallMin": 3.1,
+      "virtualMin": 31.8
+    },
+    {
+      "listeners": 246,
+      "nodes": 760,
+      "heapMB": 14.5,
+      "docs": 1,
+      "frames": 1,
+      "wallMin": 4.1,
+      "virtualMin": 42.1
+    },
+    {
+      "listeners": 248,
+      "nodes": 762,
+      "heapMB": 15.7,
+      "docs": 1,
+      "frames": 1,
+      "wallMin": 5.2,
+      "virtualMin": 52.5
+    },
+    {
+      "listeners": 253,
+      "nodes": 790,
+      "heapMB": 17.1,
+      "docs": 1,
+      "frames": 1,
+      "wallMin": 6.2,
+      "virtualMin": 62.7
+    },
+    {
+      "listeners": 248,
+      "nodes": 767,
+      "heapMB": 17.6,
+      "docs": 1,
+      "frames": 1,
+      "wallMin": 7.2,
+      "virtualMin": 73
+    },
+    {
+      "listeners": 249,
+      "nodes": 777,
+      "heapMB": 19.3,
+      "docs": 1,
+      "frames": 1,
+      "wallMin": 8.2,
+      "virtualMin": 83.3
+    },
+    {
+      "listeners": 250,
+      "nodes": 775,
+      "heapMB": 20.4,
+      "docs": 1,
+      "frames": 1,
+      "wallMin": 9.3,
+      "virtualMin": 93.6
+    }
+  ],
+  "events": {
+    "events": 44208,
+    "unique": 44208,
+    "t": 6077.9839,
+    "status": "running"
+  }
+}

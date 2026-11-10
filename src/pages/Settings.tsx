@@ -4,12 +4,14 @@ import { store, useUi } from '../app/store';
 import { ENGINE_VERSION, PERMISSIONS, ROLE_LABEL } from '../domain/config';
 import type { Role } from '../domain/types';
 import { PageHead } from '../ui/Page';
+import { useConfirmReplace } from '../workspace/RestartDialog';
 
 const ROLES = Object.keys(ROLE_LABEL) as Role[];
 
 export function SettingsPage() {
   const s = useUi();
   const [seed, setSeed] = useState(String(s.seed));
+  const replace = useConfirmReplace();
   return (
     <div className="page">
       <PageHead crumbs="Operations" title="Settings" sub="Workspace preferences for this browser. Station parameters live in each station's inspector." />
@@ -53,10 +55,10 @@ export function SettingsPage() {
           </dl>
           <div className="row wrap" style={{ marginTop: 12 }}>
             <input value={seed} onChange={(e) => setSeed(e.target.value.replace(/\D/g, ''))} aria-label="Seed" style={{ width: 90 }} />
-            <button className="btn" onClick={() => store.reset({ seed: Number(seed) || 842 })}>
+            <button className="btn" onClick={() => replace.ask(`Start a new run with seed ${Number(seed) || 842}?`, 'Start new run', () => store.reset({ seed: Number(seed) || 842 }))}>
               New run with seed
             </button>
-            <button className="btn" onClick={() => store.reset()}>
+            <button className="btn" onClick={() => replace.ask('Reset to default settings?', 'Reset run', () => store.reset())}>
               Reset to defaults
             </button>
             <button
@@ -79,6 +81,7 @@ export function SettingsPage() {
           control real machines, PLCs or networks. Drawings are hand-built vector figures in the Hairline style (MIT-licensed kernel).
         </p>
       </div>
+      {replace.dialog}
     </div>
   );
 }

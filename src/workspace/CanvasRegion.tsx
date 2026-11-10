@@ -10,6 +10,8 @@ import { nextUnitAt } from '../features/follow-product/FollowCard';
 import { statusLabel } from '../ui/Status';
 import { IcoFit, IcoFocus, IcoFollow, IcoMinus, IcoPlus } from '../ui/Icons';
 import { Scene } from '../vector/Scene';
+import { TourCard } from '../demo/TourCard';
+import { useDemo } from '../demo/demo';
 import { ModeBar, ModePanel } from './ModeBar';
 import { StatusRail } from './StatusRail';
 import { useWorkspace, workspace } from './workspaceStore';
@@ -32,6 +34,7 @@ export function CanvasRegion() {
   const ref = useRef<HTMLElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const [panel, setPanel] = useState<HTMLElement | null>(null);
+  const touring = useDemo().step !== null;
 
   useLayoutEffect(() => {
     const el = ref.current, bot = bottom.current;
@@ -54,27 +57,34 @@ export function CanvasRegion() {
       el.style.setProperty('--ov-r', `${Math.round(padR)}px`);
       el.style.setProperty('--ov-b', `${Math.round(padB)}px`);
       el.toggleAttribute('data-sheet', padB > 0);
+      const tour = el.querySelector<HTMLElement>('.tour-card');
+      const tourH = tour ? tour.offsetHeight + 8 : 0;
+      el.style.setProperty('--tour-h', `${tourH}px`);
+      const top = TOP_RESERVE + tourH;
       right -= padR;
       let floor = Math.min(H, bot.offsetTop) - 8;
       if (panel) {
         if (panel.offsetWidth >= W * 0.6) {
-          if (panel.offsetTop - 8 > TOP_RESERVE + MIN_SAFE_H) floor = Math.min(floor, panel.offsetTop - 8);
+          if (panel.offsetTop - 8 > top + MIN_SAFE_H) floor = Math.min(floor, panel.offsetTop - 8);
         } else left = Math.max(left, panel.offsetLeft + panel.offsetWidth + 12);
       }
-      camera.setSafe({ x: left, y: TOP_RESERVE, w: Math.max(MIN_SAFE_H, right - left), h: Math.max(MIN_SAFE_H / 2, floor - TOP_RESERVE) });
+      camera.setSafe({ x: left, y: top, w: Math.max(MIN_SAFE_H, right - left), h: Math.max(MIN_SAFE_H / 2, floor - top) });
     };
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     ro.observe(bot);
     if (panel) ro.observe(panel);
     overlays().forEach((o) => ro.observe(o));
+    const tour = el.querySelector<HTMLElement>('.tour-card');
+    if (tour) ro.observe(tour);
     measure();
     return () => ro.disconnect();
-  }, [panel, w.inspectorOpen && w.station !== null, w.tool]);
+  }, [panel, w.inspectorOpen && w.station !== null, w.tool, touring]);
 
   return (
     <main ref={ref} className="ws-canvas" aria-label="Production canvas">
       <StationNav s={s} />
+      <TourCard />
       <Scene selected={w.station} selectedComp={w.comp} onSelect={(id) => workspace.select(id)} onSelectComp={(c, st) => {
           const id = st ?? w.station;
           if (id) workspace.selectComponent(id, c);

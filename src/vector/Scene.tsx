@@ -180,7 +180,11 @@ export function Scene({ selected, selectedComp, onSelect, onSelectComp }: Props)
                   aria-pressed={selected === id}
                   aria-label={`Station ${meta.no} ${meta.name}, ${statusLabel(effectiveStatus(s, id))}`}
                   onPointerEnter={() => setHoverStation(id)}
-                  onPointerLeave={() => setHoverStation((h) => (h === id ? null : h))}
+                  onPointerLeave={(e) => {
+                    // a kit riding the conveyor under a still pointer must not flicker the machine's hover
+                    if ((e.relatedTarget as Element | null)?.classList?.contains('hit-unit')) return;
+                    setHoverStation((h) => (h === id ? null : h));
+                  }}
                   onFocus={() => setHoverStation(id)}
                   onBlur={() => setHoverStation(null)}
                   onClick={() => {
@@ -233,6 +237,9 @@ export function Scene({ selected, selectedComp, onSelect, onSelectComp }: Props)
                   r={7}
                   role="button"
                   aria-label={`Follow ${unitOf(s, u.id).serial}`}
+                  onPointerLeave={(e) => {
+                    if (!(e.relatedTarget as Element | null)?.matches?.('path.hit')) setHoverStation(null);
+                  }}
                   onClick={(e) => {
                     e.stopPropagation();
                     store.setFollow(u.id);

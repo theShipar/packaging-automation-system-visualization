@@ -9,6 +9,7 @@ import { RestartDialog, RestoreScenarioDialog } from './RestartDialog';
 import { camera } from '../camera/controller';
 import { usePopover } from './usePopover';
 import { workspace } from './workspaceStore';
+import { demo, useDemo } from '../demo/demo';
 
 const WIP_STATES = new Set(['queue', 'processing', 'transfer', 'acceptedAwaitingPackaging', 'packed']);
 const LINE_STATE: Record<Session['status'], string> = { ready: 'Ready', running: 'Running', paused: 'Paused', completed: 'Completed', halted: 'Halted' };
@@ -20,6 +21,7 @@ export function TopCommandBar({ onHelp }: { onHelp: () => void }) {
   const faulted = s.faults.some((f) => f.kind === 'stop' && f.status !== 'recovered' && f.status !== 'resolved');
   const state = faulted && s.status === 'running' ? 'Faulted' : LINE_STATE[s.status];
   const pct = Math.min(1, k.shipped / Math.max(1, s.batch.committedGood));
+  const presenting = useDemo().presenting;
 
   return (
     <header className="cmdbar" aria-label="Line command bar">
@@ -82,6 +84,11 @@ export function TopCommandBar({ onHelp }: { onHelp: () => void }) {
         <button className="icon-btn save" onClick={() => void store.save()} title="Save snapshot of this run to the browser" aria-label="Save snapshot">
           <IcoSave />
         </button>
+        {presenting && (
+          <button className="btn sm present-exit" onClick={() => demo.setPresenting(false)} title="Leave presentation mode (Esc)">
+            Exit presentation
+          </button>
+        )}
         <RunMenu s={s} onDialog={setDialog} onHelp={onHelp} />
       </div>
       {dialog === 'restart' && <RestartDialog onClose={() => setDialog(null)} />}
@@ -253,6 +260,20 @@ function RunMenu({ s, onDialog, onHelp }: { s: Session; onDialog: (d: 'restart' 
             <span>
               Restart run…
               <small>Same seed, current settings; asks first</small>
+            </span>
+          </button>
+          <button role="menuitem" className="menu-row" onClick={pick(() => demo.intro())}>
+            <IcoPlay />
+            <span>
+              Guided demo
+              <small>Five short scenes on a fixed seed; also at ?demo=1</small>
+            </span>
+          </button>
+          <button role="menuitem" className="menu-row" onClick={pick(() => demo.setPresenting(!demo.get().presenting))}>
+            <IcoFit />
+            <span>
+              {demo.get().presenting ? 'Leave presentation' : 'Presentation mode'}
+              <small>Hide secondary chrome; P toggles, Esc leaves</small>
             </span>
           </button>
           <button role="menuitem" className="menu-row" onClick={pick(onHelp)}>

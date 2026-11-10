@@ -134,9 +134,9 @@ kbd { font: 600 11px var(--font-mono); padding: 2px 6px; border-radius: var(--lf
 .ws-canvas { flex: 1; min-width: 0; position: relative; background: var(--lf-canvas); overflow: hidden; container: canvas / inline-size; }
 .ov { position: absolute; z-index: 5; pointer-events: none; }
 .ov > * { pointer-events: auto; }
-.ov-top { left: var(--lf-overlay-inset); right: calc(var(--lf-overlay-inset) + var(--ov-r, 0px)); top: 14px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.ov-top { left: var(--lf-overlay-inset); right: calc(var(--lf-overlay-inset) + var(--ov-r, 0px)); top: calc(14px + var(--tour-h, 0px)); display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 .ov-bottom { left: var(--lf-overlay-inset); right: calc(var(--lf-overlay-inset) + var(--ov-r, 0px)); bottom: calc(16px + var(--ov-b, 0px)); }
-.ov-hint { left: 50%; top: 56px; transform: translateX(-50%); font-size: 12.5px; color: var(--lf-ink-3); background: var(--lf-surface); border: 1px solid var(--lf-border); border-radius: var(--lf-radius-pill); padding: 4px 12px; white-space: nowrap; }
+.ov-hint { left: 50%; top: calc(56px + var(--tour-h, 0px)); transform: translateX(-50%); font-size: 12.5px; color: var(--lf-ink-3); background: var(--lf-surface); border: 1px solid var(--lf-border); border-radius: var(--lf-radius-pill); padding: 4px 12px; white-space: nowrap; }
 .notice {
   display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; max-width: min(520px, 100%);
   border-radius: var(--lf-radius-pill); border: 1px solid var(--lf-border); background: var(--lf-surface);
@@ -375,7 +375,7 @@ input[type='checkbox'] { accent-color: var(--lf-selected-strong); width: 15px; h
 
 /* mode panel: docked at the canvas's left edge; the camera's safe rect starts after it */
 .mode-panel {
-  position: absolute; z-index: 6; left: var(--lf-overlay-inset); top: 56px; width: 304px; max-height: calc(100% - 56px - 84px); overflow-y: auto;
+  position: absolute; z-index: 6; left: var(--lf-overlay-inset); top: calc(56px + var(--tour-h, 0px)); width: 304px; max-height: calc(100% - 56px - 84px - var(--tour-h, 0px)); overflow-y: auto;
   overscroll-behavior: contain; display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 14px; border-radius: var(--lf-radius-md);
   background: var(--lf-surface); border: 1px solid var(--lf-border); box-shadow: var(--lf-shadow-panel); font-size: 12.5px;
   animation: pop-in var(--lf-ui-standard) var(--lf-ease-out);
@@ -758,6 +758,30 @@ details.more[open] summary::before { transform: rotate(45deg); }
   .play span { display: none; }
   .play { padding: 0 10px; }
 }
+/* guided demo */
+.tour-card {
+  position: absolute; z-index: 9; top: 14px; left: 50%; transform: translateX(-50%); width: min(600px, calc(100% - 24px - var(--ov-r, 0px)));
+  margin-left: calc(var(--ov-r, 0px) / -2); padding: 12px 14px; border-radius: var(--lf-radius-md); background: var(--lf-surface);
+  border: 1px solid var(--lf-border); box-shadow: var(--lf-shadow-pop); display: flex; flex-direction: column; gap: 6px;
+  animation: fade-in var(--lf-ui-standard) var(--lf-ease-out);
+}
+.tour-head { display: flex; align-items: baseline; gap: 10px; }
+.tour-head .icon-btn { margin-left: auto; align-self: center; }
+.tour-title { font-size: 15px; font-weight: 650; margin: 0; }
+.tour-body { margin: 0; font-size: 13px; line-height: 19px; color: var(--lf-ink-2); }
+.tour-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tour-dots { display: inline-flex; gap: 5px; }
+.tour-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--lf-border-strong); }
+.tour-dots i.done { background: var(--lf-selected); }
+.tour-dots i.on { width: 16px; border-radius: 3px; background: var(--lf-selected-strong); }
+.tour-present { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--lf-ink-3); cursor: pointer; }
+
+/* presentation: the canvas and one contextual panel; everything else one Esc away */
+.presenting .rail, .presenting .tool-drawer, .presenting .cb-crumb, .presenting .cb-batch, .presenting .cb-progress,
+.presenting .cb-right > .pop-wrap:first-child, .presenting .cb-right .icon-btn.save, .presenting .cmdbar .seg,
+.presenting .ob-left, .presenting .notice.latest, .presenting .st-nav { display: none; }
+.presenting .cmdbar { border-bottom-color: transparent; }
+
 /* only shown where the toolbar drops the control */
 .menu-row.narrow-only { display: none; }
 

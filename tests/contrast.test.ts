@@ -1,6 +1,8 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
+// read the source file directly: Vite strips CSS imports in the test environment, and the project carries no Node typings
+const fsModule = 'node:fs';
+const { readFileSync } = (await import(/* @vite-ignore */ fsModule)) as { readFileSync(p: URL, enc: 'utf8'): string };
 const css = readFileSync(new URL('../src/styles/tokens.css', import.meta.url), 'utf8');
 const token = (name: string) => {
   const m = css.match(new RegExp(`--lf-${name}:\\s*(#[0-9a-f]{6})`, 'i'));

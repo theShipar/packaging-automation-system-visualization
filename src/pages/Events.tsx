@@ -106,7 +106,19 @@ export function EventsPage() {
             {rows.length === 0 && (
               <tr>
                 <td colSpan={5} className="muted">
-                  No events match. Start the line or widen the filters.
+                  No events match. Start the line or widen the filters.{' '}
+                  {(sev !== 'all' || q || noise) && (
+                    <button
+                      className="btn sm"
+                      onClick={() => {
+                        setSev('all');
+                        setQ('');
+                        setNoise(false);
+                      }}
+                    >
+                      Clear filters
+                    </button>
+                  )}
                 </td>
               </tr>
             )}
