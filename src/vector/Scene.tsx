@@ -11,7 +11,7 @@ import { LANES } from '../transport/graph';
 import { PORTS, lanePoint } from '../transport/layout';
 import { machinePose, type UnitPose } from '../transport/poses';
 import { queueBadges } from '../transport/queueLayout';
-import { StatusDot, StatusPill, statusLabel } from '../ui/Status';
+import { StatusDot, statusLabel } from '../ui/Status';
 import { type MachinePose } from './builder';
 import { setReducedMotion } from './iso';
 import { Shapes, productItems } from './ProductLayer';
@@ -48,13 +48,9 @@ interface Props {
   selectedComp: string | null;
   onSelect: (id: StationId | null) => void;
   onSelectComp: (comp: string | null) => void;
-  /** Opens the full station details (the drawer). */
-  onOpen: () => void;
-  /** The anchored glance card; hidden while the drawer is open. */
-  showCard: boolean;
 }
 
-export function Scene({ selected, selectedComp, onSelect, onSelectComp, onOpen, showCard }: Props) {
+export function Scene({ selected, selectedComp, onSelect, onSelectComp }: Props) {
   const s = useFrame();
   const [hoverStation, setHoverStation] = useState<StationId | null>(null);
   const [hoverComp, setHoverComp] = useState<string | null>(null);
@@ -121,7 +117,7 @@ export function Scene({ selected, selectedComp, onSelect, onSelectComp, onOpen, 
     setView(clampView({ k, x: cx - ((cx - v.x) * k) / v.k, y: cy - ((cy - v.y) * k) / v.k }, r.width, r.height));
   };
   const down = (e: RPE) => {
-    if ((e.target as Element).closest('.hit, .hit-comp, .st-label, .unit, .follow-card, .focus-card')) return;
+    if ((e.target as Element).closest('.hit, .hit-comp, .st-label, .unit, .follow-card')) return;
     drag.current = { x: e.clientX, y: e.clientY, vx: view.current.x, vy: view.current.y, moved: false };
   };
   const move = (e: RPE) => {
@@ -137,7 +133,7 @@ export function Scene({ selected, selectedComp, onSelect, onSelectComp, onOpen, 
   const up = (e: RPE) => {
     const d = drag.current;
     drag.current = null;
-    if (d && !d.moved && !(e.target as Element).closest('.hit, .hit-comp, .st-label, button, .unit, .follow-card, .focus-card')) {
+    if (d && !d.moved && !(e.target as Element).closest('.hit, .hit-comp, .st-label, button, .unit, .follow-card')) {
       onSelect(null);
       onSelectComp(null);
     }
@@ -149,10 +145,9 @@ export function Scene({ selected, selectedComp, onSelect, onSelectComp, onOpen, 
   return (
     <div
       className={`scene${follow ? ' following' : ''}${hoverStation ? ' has-hover' : ''}${selected ? ' has-focus' : ''}`}
-      style={{ maxWidth: `calc(var(--scene-max-h, 100vh) * ${(VIEW_W / VIEW_H).toFixed(4)})` }}
       ref={wrap} onWheel={onWheel} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={() => (drag.current = null)}>
       <div className="scene-inner" style={{ transform: `translate(${v.x}px, ${v.y}px) scale(${v.k})` }}>
-        <div className="scene-aspect" ref={aspect} style={{ aspectRatio: `${VIEW_W} / ${VIEW_H}` }}>
+        <div className="scene-aspect" ref={aspect} style={{ aspectRatio: `${VIEW_W} / ${VIEW_H}`, ['--ar' as string]: (VIEW_W / VIEW_H).toFixed(4) }}>
           <svg viewBox={`0 0 ${VIEW_W.toFixed(1)} ${VIEW_H.toFixed(1)}`} className="hl" role="group" aria-label="Packaging line, six stations from intake (lower left) to dispatch (upper right)">
             <g className="layer-back">
               {FAR_TO_NEAR.map((id) => {
@@ -266,7 +261,7 @@ export function Scene({ selected, selectedComp, onSelect, onSelectComp, onOpen, 
               s={s}
               id={id}
               at={at}
-              active={selected === id && showCard}
+              active={false}
               sel={selected === id}
               hover={hoverStation === id}
               onClick={() => onSelect(id)}
@@ -274,7 +269,6 @@ export function Scene({ selected, selectedComp, onSelect, onSelectComp, onOpen, 
               onLeave={() => setHoverStation((h) => (h === id ? null : h))}
             />
           ))}
-          {selected && showCard && <FocusCard s={s} id={selected} k={v.k} onOpen={onOpen} />}
           {hoverComp && (
             <div className="comp-tip" style={pos(GEOMETRY[COMP_STATION[hoverComp]].label[0], GEOMETRY[COMP_STATION[hoverComp]].label[1] + 34)}>
               <b>{COMP_NAME[hoverComp]}</b> <span className="mono">{hoverComp}</span>
@@ -344,64 +338,6 @@ function StationLabel({ s, id, at, active, sel, hover, onClick, onEnter, onLeave
         {!alert && <span className="st-meta">{(v.avgCycle ?? s.config[id].cycleSeconds).toFixed(1)} s</span>}
       </span>
     </button>
-  );
-}
-
-/** Glance card anchored to the focused station; the drawer holds everything else. */
-function FocusCard({ s, id, k, onOpen }: { s: Session; id: StationId; k: number; onOpen: () => void }) {
-  const meta = STATION_META[id];
-  const v = stationView(s, id);
-  const fault = s.faults.find((f) => f.station === id && isOpenFault(f));
-  const h = GEOMETRY[id].hull;
-  let x0 = Infinity, x1 = -Infinity, y0 = Infinity;
-  for (const p of h) {
-    x0 = Math.min(x0, p[0]);
-    x1 = Math.max(x1, p[0]);
-    y0 = Math.min(y0, p[1]);
-  }
-  const below = y0 / VIEW_H < 0.34;
-  const at = below ? GEOMETRY[id].label : ([(x0 + x1) / 2, y0] as [number, number]);
-  const style = {
-    ...pos(at[0], at[1] + (below ? 34 : 0)),
-    transform: `translate(-50%, ${below ? '0' : 'calc(-100% - 10px)'}) scale(${1 / k})`,
-    transformOrigin: below ? '50% 0' : '50% 100%',
-  };
-  return (
-    <div className={`focus-card${below ? ' below' : ''}`} style={style} role="dialog" aria-label={`${meta.name} summary`}>
-      <div className="fc-h">
-        <span className="st-no">{meta.no}</span>
-        <b title={meta.name}>{meta.short}</b>
-        <StatusPill status={v.status} />
-      </div>
-      {fault && <div className="fc-fault">{FAULT_DEF[fault.code].title}</div>}
-      <div className="fc-stats">
-        <div className="fc-stat">
-          <b>{(v.avgCycle ?? s.config[id].cycleSeconds).toFixed(1)}s</b>
-          <span>{v.avgCycle ? 'avg cycle' : 'cycle'}</span>
-        </div>
-        <div className="fc-stat">
-          <b>
-            {v.inQueue + v.incoming}/{v.inCap}
-          </b>
-          <span>in buffer</span>
-        </div>
-        <div className="fc-stat">
-          <b>{v.utilization === null ? '—' : `${Math.round(v.utilization * 100)}%`}</b>
-          <span>utilisation</span>
-        </div>
-      </div>
-      <div className="fc-unit">
-        <span className="mono">{v.currentUnit ?? 'No unit in machine'}</span>
-        <button className="btn sm primary" onClick={onOpen}>
-          Details
-        </button>
-      </div>
-      {v.currentUnit && (
-        <div className="progress" aria-label={`Cycle ${Math.round((v.progress ?? 0) * 100)}%`}>
-          <i style={{ width: `${(v.progress ?? 0) * 100}%` }} />
-        </div>
-      )}
-    </div>
   );
 }
 

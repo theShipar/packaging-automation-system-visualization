@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
 import { useUi } from '../app/store';
 import { FAULT_DEF, STATION_META } from '../domain/config';
 import { shippedUnits, stagingUnits } from '../domain/engine';
@@ -7,6 +6,7 @@ import { SKUS, buildHistory } from '../domain/history';
 import { defectPareto, formatClock, lineKpis, unitCounts } from '../domain/kpis';
 import type { Session } from '../domain/types';
 import { Kpi, PageHead, fmtDate, pct } from '../ui/Page';
+import { ToolLink } from '../workspace/links';
 
 const skuName = (id: string) => SKUS.find((s) => s.id === id)?.name ?? id;
 const STATUS_TONE: Record<string, string> = { completed: 'good', partial: 'warn', cancelled: 'crit', planned: '', inProgress: 'blue', released: 'blue' };
@@ -68,7 +68,7 @@ export function BatchesPage() {
             {rows.map((r) => (
               <tr key={r.id}>
                 <td>
-                  <Link to={`/production/batches/${r.id}`}>{r.id}</Link> {r.live && <span className="tag blue">live</span>}
+                  <ToolLink tool="batches" item={r.id}>{r.id}</ToolLink> {r.live && <span className="tag blue">live</span>}
                 </td>
                 <td>
                   {skuName(r.sku)} <span className="tert mono">{r.sku}</span>
@@ -91,21 +91,21 @@ export function BatchesPage() {
   );
 }
 
-export function BatchDetailPage() {
-  const { id } = useParams();
+export function BatchDetailPage({ id }: { id: string }) {
   const s = useUi();
   if (id === s.batch.id) return <LiveBatch s={s} />;
   const b = buildHistory().batches.find((x) => x.id === id);
   if (!b)
     return (
       <div className="page">
-        <h1>Batch {id} not found</h1>
-        <Link to="/production/batches">All batches</Link>
+        <BackToBatches />
+        <div className="empty">Batch {id} was not found in this run or its history.</div>
       </div>
     );
   const good = b.dispatched;
   return (
     <div className="page">
+      <BackToBatches />
       <PageHead crumbs={`Batches / ${b.id}`} title={`${b.id} · ${skuName(b.sku)}`} sub={`${b.order} · ${b.status} · ${fmtDate(b.start)} → ${fmtDate(b.end)} · synthetic history`} />
       <div className="grid4">
         <Kpi t="Dispatched good" v={good.toLocaleString()} n={`of ${b.committed.toLocaleString()} committed`} />
@@ -190,12 +190,13 @@ function LiveBatch({ s }: { s: Session }) {
   const balance = c.planned - c.unreleased - c.wip - c.rejected - c.dispatched;
   return (
     <div className="page">
+      <BackToBatches />
       <PageHead
         crumbs={`Batches / ${s.batch.id}`}
         title={`${s.batch.id} · ${s.batch.skuName}`}
         sub={
           <>
-            Live simulated run {s.runId} · {s.batch.status} · virtual {formatClock(s.t)} · <Link to="/production">Open line</Link>
+            Live simulated run {s.runId} · {s.batch.status} · virtual {formatClock(s.t)}
           </>
         }
       />
@@ -289,5 +290,13 @@ function LiveBatch({ s }: { s: Session }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function BackToBatches() {
+  return (
+    <ToolLink tool="batches" className="back-link">
+      ← All batches
+    </ToolLink>
   );
 }

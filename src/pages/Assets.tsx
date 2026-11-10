@@ -1,4 +1,3 @@
-import { Link, useParams } from 'react-router-dom';
 import { useUi } from '../app/store';
 import { COMPONENTS, FAULTS, FAULT_DEF, STATIONS, STATION_META } from '../domain/config';
 import { isOpenFault } from '../domain/engine';
@@ -7,6 +6,7 @@ import { effectiveStatus, formatClock } from '../domain/kpis';
 import { PageHead, fmtDate } from '../ui/Page';
 import { StatusPill } from '../ui/Status';
 import { StationThumb } from '../vector/StationThumb';
+import { StationLink, ToolLink } from '../workspace/links';
 
 export function AssetsPage() {
   const s = useUi();
@@ -30,13 +30,13 @@ export function AssetsPage() {
               {comps.map((c) => {
                 const open = s.faults.find((f) => f.componentId === c.id && isOpenFault(f));
                 return (
-                  <Link key={c.id} to={`/assets/${c.id}`} className="asset-row">
+                  <ToolLink key={c.id} tool="assets" item={c.id} className="asset-row">
                     <span>{c.name}</span>
                     <span className="row">
                       {open && <span className="tag crit">{open.code}</span>}
                       <span className="mono tert">{c.id}</span>
                     </span>
-                  </Link>
+                  </ToolLink>
                 );
               })}
             </div>
@@ -47,15 +47,14 @@ export function AssetsPage() {
   );
 }
 
-export function AssetDetailPage() {
-  const { id } = useParams();
+export function AssetDetailPage({ id }: { id: string }) {
   const s = useUi();
   const c = COMPONENTS.find((x) => x.id === id);
   if (!c)
     return (
       <div className="page">
-        <h1>Asset {id} not found</h1>
-        <Link to="/assets">All assets</Link>
+        <BackToAssets />
+        <div className="empty">Asset {id} was not found.</div>
       </div>
     );
   const codes = FAULTS.filter((f) => f.componentId === c.id).map((f) => f.code);
@@ -66,12 +65,15 @@ export function AssetDetailPage() {
   const st = s.stations[c.station];
   return (
     <div className="page">
+      <BackToAssets />
       <PageHead
         crumbs={`Assets / ${STATION_META[c.station].name}`}
         title={c.name}
         sub={
           <>
-            <span className="mono">{c.id}</span> · {c.kind} · <Link to={`/production?station=${c.station}`}>Show on line</Link>
+            <span className="mono">{c.id}</span> · {c.kind} · <StationLink station={c.station} comp={c.id}>
+              Show on line
+            </StationLink>
           </>
         }
       />
@@ -159,5 +161,13 @@ export function AssetDetailPage() {
         </>
       )}
     </div>
+  );
+}
+
+function BackToAssets() {
+  return (
+    <ToolLink tool="assets" className="back-link">
+      ← All assets
+    </ToolLink>
   );
 }

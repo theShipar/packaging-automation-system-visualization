@@ -3,6 +3,7 @@ import { useUi } from '../app/store';
 import { STATIONS } from '../domain/config';
 import { buildHistory } from '../domain/history';
 import { lineKpis } from '../domain/kpis';
+import { LiveInsights } from '../features/LiveInsights';
 import { BarChart, LineChart } from '../ui/Charts';
 import { Kpi, PageHead, pct } from '../ui/Page';
 
@@ -36,6 +37,9 @@ export function AnalyticsPage() {
           </div>
         }
       />
+      <h2>Live run {s.runId}</h2>
+      <LiveInsights s={s} />
+      <h2>Daily history</h2>
       <div className="grid4">
         <Kpi t={`Shipped, ${range} d`} v={shipped.toLocaleString()} n={`${Math.round(shipped / Math.max(1, days.filter((d) => d.shipped).length)).toLocaleString()} per production day`} />
         <Kpi t="Average OEE" v={pct(avgOee)} n="days with production" />
@@ -65,7 +69,7 @@ export function AnalyticsPage() {
           <BarChart label="Rejects per day" bars={days.map((d) => ({ x: short(d.date), v: d.rejected, cls: 'crit' }))} />
         </div>
       </div>
-      <h2>Live run {s.runId}</h2>
+      <h2>Live run samples</h2>
       <div className="grid2">
         <div className="card">
           <h3>Throughput and WIP</h3>
@@ -79,7 +83,7 @@ export function AnalyticsPage() {
           />
         </div>
         <div className="card">
-          <h3>Station utilization (time processing)</h3>
+          <h3>Busy share per station (run)</h3>
           <BarChart
             label="Station utilization"
             yMax={100}

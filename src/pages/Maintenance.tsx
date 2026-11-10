@@ -1,10 +1,10 @@
-import { Link } from 'react-router-dom';
 import { useUi } from '../app/store';
 import { FAULT_DEF, STATION_META } from '../domain/config';
 import { isOpenFault } from '../domain/engine';
 import { buildHistory } from '../domain/history';
 import { formatClock } from '../domain/kpis';
 import { Kpi, PageHead, fmtDate } from '../ui/Page';
+import { StationLink } from '../workspace/links';
 
 export function MaintenancePage() {
   const s = useUi();
@@ -61,7 +61,7 @@ export function MaintenancePage() {
                 </td>
                 <td className="num muted">{formatClock(f.raisedAt)}</td>
                 <td className="mono">{f.workOrderId ?? '—'}</td>
-                <td>{isOpenFault(f) && <Link to={`/production?station=${f.station}`}>Handle →</Link>}</td>
+                <td>{isOpenFault(f) && <StationLink station={f.station} comp={f.componentId}>Handle →</StationLink>}</td>
               </tr>
             ))}
           </tbody>

@@ -102,3 +102,82 @@ export const IcoDownload = () => (
     <path d="M12 3v12M7 10l5 5 5-5M5 21h14" />
   </I>
 );
+export const IcoSearch = () => (
+  <I>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="M16 16l4.5 4.5" />
+  </I>
+);
+export const IcoBell = () => (
+  <I>
+    <path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z" />
+    <path d="M10 20.5a2 2 0 0 0 4 0" />
+  </I>
+);
+export const IcoMore = () => (
+  <I>
+    <circle cx="5.5" cy="12" r="1" />
+    <circle cx="12" cy="12" r="1" />
+    <circle cx="18.5" cy="12" r="1" />
+  </I>
+);
+export const IcoKeyboard = () => (
+  <I>
+    <rect x="2.5" y="6" width="19" height="12" rx="2.5" />
+    <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" />
+  </I>
+);
+export const IcoPlus = () => (
+  <I>
+    <path d="M12 5v14M5 12h14" />
+  </I>
+);
+export const IcoMinus = () => (
+  <I>
+    <path d="M5 12h14" />
+  </I>
+);
+export const IcoFit = () => (
+  <I>
+    <path d="M4 9V5h4M20 9V5h-4M4 15v4h4M20 15v4h-4" />
+  </I>
+);
+export const IcoFocus = () => (
+  <I>
+    <circle cx="12" cy="12" r="3.5" />
+    <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+  </I>
+);
+export const IcoFollow = () => (
+  <I>
+    <rect x="7" y="9" width="10" height="7" rx="1.5" />
+    <path d="M3 12.5h2M19 12.5h2M12 4v3" />
+  </I>
+);
+export const IcoLayers = () => (
+  <I>
+    <path d="M12 4l9 4.5-9 4.5-9-4.5z" />
+    <path d="M3 13l9 4.5 9-4.5" />
+  </I>
+);
+export const IcoExpand = () => (
+  <I>
+    <path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" />
+  </I>
+);
+export const IcoChevronLeft = () => (
+  <I>
+    <path d="M15 5l-7 7 7 7" />
+  </I>
+);
+export const IcoStep = () => (
+  <I>
+    <path d="M5 5v14l9-7zM18 5v14" />
+  </I>
+);
+export const IcoHelp = () => (
+  <I>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1.9-1.1 1.8M12 17h.01" />
+  </I>
+);

@@ -1,14 +1,18 @@
-import type { ReactNode } from 'react';
+import { useContext, type ReactNode } from 'react';
+import { DrawerTitle } from '../workspace/drawerContext';
 import { SimBadge } from './Status';
 
+/** Inside a tool drawer the drawer header already names the tool and carries the simulation label. */
 export function PageHead({ crumbs, title, sub, actions }: { crumbs: string; title: string; sub?: ReactNode; actions?: ReactNode }) {
+  const drawer = useContext(DrawerTitle);
+  const showTitle = drawer !== title;
   return (
-    <header className="page-head">
+    <header className={`page-head${drawer ? ' in-drawer' : ''}`}>
       <div style={{ minWidth: 0 }}>
-        <div className="crumbs">{crumbs}</div>
-        <h1 className="page-title">{title}</h1>
+        {!drawer && <div className="crumbs">{crumbs}</div>}
+        {showTitle && <h3 className="page-title">{title}</h3>}
         <div className="row wrap page-meta">
-          <SimBadge />
+          {!drawer && <SimBadge />}
           {sub && <span className="sub">{sub}</span>}
         </div>
       </div>
@@ -21,7 +25,7 @@ export function Kpi({ t, v, unit, n }: { t: string; v: ReactNode; unit?: string;
   return (
     <div className="card kpi">
       <span className="kpi-t">{t}</span>
-      <span className="kpi-v">
+      <span className="kpi-v num">
         {v}
         {unit && <span className="unit">{unit}</span>}
       </span>

@@ -1,5 +1,4 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
 import { store, useUi } from '../app/store';
 import { COMPONENTS, FAULTS, FAULT_DEF, MATERIALS, PERMISSIONS, ROLE_LABEL, SETTINGS_SCHEMA, STATION_META } from '../domain/config';
 import { isOpenFault, stagingUnits } from '../domain/engine';
@@ -9,83 +8,83 @@ import { IcoClose } from '../ui/Icons';
 import { nextUnitAt } from './follow-product/FollowCard';
 import { StatusDot, StatusPill, statusLabel } from '../ui/Status';
 import { StationThumb } from '../vector/StationThumb';
+import { ToolLink } from '../workspace/links';
+import { useWorkspace, workspace, type InspectorTab } from '../workspace/workspaceStore';
 
-type Tab = 'overview' | 'components' | 'logs' | 'settings';
-const TABS: Tab[] = ['overview', 'components', 'logs', 'settings'];
-const lastTab: Partial<Record<StationId, Tab>> = {};
+const TABS: { id: InspectorTab; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'parts', label: 'Parts' },
+  { id: 'activity', label: 'Activity' },
+  { id: 'config', label: 'Config' },
+];
 
 const can = (kind: string) => PERMISSIONS[kind]?.includes(store.role) ?? false;
 
-export function Inspector({ id, comp, onComp, onClose }: { id: StationId; comp: string | null; onComp: (c: string | null) => void; onClose: () => void }) {
+/** Docked machine inspector. Selection and tab live in the workspace store, so canvas, assets and events stay in sync. */
+export function Inspector({ id }: { id: StationId }) {
   const s = useUi();
-  const [tab, setTab] = useState<Tab>(lastTab[id] ?? 'overview');
-  useEffect(() => setTab(lastTab[id] ?? 'overview'), [id]);
-  useEffect(() => {
-    if (comp) choose('components');
-  }, [comp]);
-  const choose = (t: Tab) => {
-    lastTab[id] = t;
-    setTab(t);
-  };
+  const w = useWorkspace();
+  const tab = w.inspectorTab;
+  const comp = w.comp;
   const meta = STATION_META[id];
   const v = stationView(s, id);
   const open = s.faults.filter((f) => f.station === id && isOpenFault(f));
-  useEffect(() => {
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && !(e.target instanceof HTMLInputElement) && onClose();
-    addEventListener('keydown', esc);
-    return () => removeEventListener('keydown', esc);
-  }, [onClose]);
+  const onComp = (c: string | null) => workspace.selectComponent(id, c);
 
   return (
-    <aside className="drawer insp" aria-label={`Station details: ${meta.name}`}>
+    <div className="insp" aria-label={`Machine details: ${meta.name}`}>
       <div className="insp-head">
         <div className="row">
-          <span className="eyebrow">Station {meta.no}</span>
+          <span className="eyebrow">
+            {meta.no} · {meta.short}
+          </span>
           <span className="spacer" />
           <StatusPill status={v.status} />
-          <button className="icon-btn" onClick={onClose} aria-label="Close details">
+          <button className="icon-btn sm" onClick={() => workspace.closeInspector()} aria-label="Close details" title="Close details (selection stays)">
             <IcoClose />
           </button>
         </div>
-        <div className="insp-name">{meta.name}</div>
-        <div className="muted" style={{ fontSize: 12 }}>
-          {meta.role}
-        </div>
+        <h2 className="insp-name">{meta.name}</h2>
+        <div className="muted insp-role">{meta.role}</div>
         <div className="insp-thumb">
           <StationThumb id={id} hiComp={comp ?? open[0]?.componentId ?? null} focus />
         </div>
         <div className="insp-kpis">
           <Tile t="Throughput" v={v.throughputHr} unit="/h" />
           <Tile t="Avg cycle" v={v.avgCycle ? v.avgCycle.toFixed(2) : '—'} unit={v.avgCycle ? 's' : undefined} />
-          <Tile t="Utilisation" v={v.utilization === null ? '—' : `${Math.round(v.utilization * 100)}%`} />
+          <Tile t="Busy share" v={v.utilization === null ? '—' : `${Math.round(v.utilization * 100)}%`} />
         </div>
       </div>
       <div className="tabs" role="tablist" aria-label="Inspector sections">
         {TABS.map((t, i) => (
           <button
-            key={t}
+            key={t.id}
+            id={`insp-tab-${t.id}`}
             role="tab"
             className="tab"
-            aria-selected={tab === t}
-            tabIndex={tab === t ? 0 : -1}
-            onClick={() => choose(t)}
+            aria-selected={tab === t.id}
+            aria-controls="insp-panel"
+            tabIndex={tab === t.id ? 0 : -1}
+            onClick={() => workspace.setInspectorTab(t.id)}
             onKeyDown={(e) => {
-              if (e.key === 'ArrowRight') choose(TABS[(i + 1) % 4]);
-              if (e.key === 'ArrowLeft') choose(TABS[(i + 3) % 4]);
+              const next = e.key === 'ArrowRight' ? TABS[(i + 1) % 4] : e.key === 'ArrowLeft' ? TABS[(i + 3) % 4] : null;
+              if (!next) return;
+              workspace.setInspectorTab(next.id);
+              (e.currentTarget.parentElement?.querySelector(`#insp-tab-${next.id}`) as HTMLElement | null)?.focus();
             }}
           >
-            {t[0].toUpperCase() + t.slice(1)}
+            {t.label}
           </button>
         ))}
       </div>
-      <div className="insp-body" role="tabpanel">
+      <div className="insp-body" role="tabpanel" id="insp-panel" aria-labelledby={`insp-tab-${tab}`}>
         {tab === 'overview' && <Overview s={s} id={id} />}
-        {tab === 'components' && <Components s={s} id={id} comp={comp} onComp={onComp} />}
-        {tab === 'logs' && <Logs s={s} id={id} />}
-        {tab === 'settings' && <Settings s={s} id={id} />}
+        {tab === 'parts' && <Components s={s} id={id} comp={comp} onComp={onComp} />}
+        {tab === 'activity' && <Logs s={s} id={id} />}
+        {tab === 'config' && <Settings s={s} id={id} />}
       </div>
       <Footer s={s} id={id} />
-    </aside>
+    </div>
   );
 }
 
@@ -344,9 +343,9 @@ function Components({ s, id, comp, onComp }: { s: Session; id: StationId; comp: 
             {comp === c.id && (
               <span style={{ gridColumn: '1 / -1', fontSize: 12, marginTop: 4 }} className="muted">
                 {c.note}. {st.completed.toLocaleString()} cycles · {hours} h running this run · {faults.length} incident{faults.length === 1 ? '' : 's'} this run.{' '}
-                <Link to={`/assets/${c.id}`} onClick={(e) => e.stopPropagation()}>
+                <ToolLink tool="assets" item={c.id}>
                   Asset page →
-                </Link>
+                </ToolLink>
               </span>
             )}
           </button>
@@ -384,7 +383,7 @@ function Logs({ s, id }: { s: Session; id: StationId }) {
           </div>
         ))}
       </div>
-      <Link to={`/events?station=${id}`}>Open in event log →</Link>
+      <ToolLink tool="events">Open in event log →</ToolLink>
     </>
   );
 }

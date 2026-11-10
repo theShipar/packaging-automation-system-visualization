@@ -44,3 +44,35 @@ test('P09 no uncaught errors while running, selecting and pausing', async ({ pag
   await page.locator('[data-test="play"]').click();
   expect(errors).toEqual([]);
 });
+
+test('L04 tool drawer docks beside the canvas and scrolls internally', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  const before = (await page.locator('.ws-canvas').boundingBox())!;
+  await page.getByRole('button', { name: 'Events' }).click();
+  const drawer = page.locator('.tool-drawer');
+  await expect(drawer).toBeVisible();
+  const after = (await page.locator('.ws-canvas').boundingBox())!;
+  expect(after.width).toBeLessThan(before.width - 300);
+  expect(await page.evaluate(() => document.scrollingElement!.scrollHeight <= innerHeight + 1)).toBe(true);
+  await expect(page).toHaveURL(/tool=events/);
+  await page.keyboard.press('Escape');
+  await expect(drawer).toHaveCount(0);
+});
+
+test('L05 legacy routes open the matching drawer item', async ({ page }) => {
+  await page.goto('/assets/ROB-BASE-01');
+  await expect(page).toHaveURL(/\/production\?.*tool=assets.*item=ROB-BASE-01/);
+  await expect(page.locator('.tool-drawer')).toContainText('ROB-BASE-01');
+  await page.goto('/production/batches/B-0842');
+  await expect(page.locator('.tool-drawer')).toContainText('B-0842');
+});
+
+test('L06 selection deep link opens the inspector; Esc steps back', async ({ page }) => {
+  await page.goto('/production?station=qa');
+  await page.waitForSelector('svg.hl');
+  await expect(page.locator('.insp-dock')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.insp-dock')).toHaveCount(0);
+  await expect(page).not.toHaveURL(/station=/);
+});

@@ -13,7 +13,7 @@ export function ReportsPage() {
   const [msg, setMsg] = useState<string | null>(null);
   return (
     <div className="page">
-      <PageHead crumbs="Operations" title="Reports and data" sub={`Current run ${s.runId} · batch ${s.batch.id} · ${s.events.length.toLocaleString()} events. Exports are generated locally; nothing leaves this browser.`} />
+      <PageHead crumbs="Operations" title="Reports" sub={`Current run ${s.runId} · batch ${s.batch.id} · ${s.events.length.toLocaleString()} events. Exports are generated locally; nothing leaves this browser.`} />
       <div className="grid3">
         <div className="card">
           <h3>Shift report</h3>

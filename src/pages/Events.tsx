@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { exportEventsCsv } from '../app/exports';
 import { useUi } from '../app/store';
 import { STATIONS, STATION_META } from '../domain/config';
@@ -7,6 +6,8 @@ import { buildHistory } from '../domain/history';
 import { formatClock } from '../domain/kpis';
 import { IcoDownload } from '../ui/Icons';
 import { PageHead, fmtDate } from '../ui/Page';
+import { useWorkspace, workspace } from '../workspace/workspaceStore';
+import type { StationId } from '../domain/types';
 
 const NOISE = new Set(['STATION_CYCLE_STARTED', 'STATION_CYCLE_COMPLETED', 'UNIT_RELEASED', 'MATERIAL_CONSUMED', 'QA_INSPECTION_PASSED', 'CASE_OPENED', 'TRANSFER_RESERVED', 'TRANSFER_STARTED', 'TRANSFER_COMPLETED']);
 
@@ -23,8 +24,7 @@ interface Row {
 
 export function EventsPage() {
   const s = useUi();
-  const [params, setParams] = useSearchParams();
-  const station = params.get('station') ?? 'all';
+  const station = useWorkspace().station ?? 'all';
   const [sev, setSev] = useState('all');
   const [q, setQ] = useState('');
   const [noise, setNoise] = useState(false);
@@ -53,7 +53,7 @@ export function EventsPage() {
     <div className="page">
       <PageHead
         crumbs="Operations"
-        title="Event log"
+        title="Events"
         sub={`${s.events.length.toLocaleString()} events in live run ${s.runId}. Append-only; virtual timestamps.`}
         actions={
           <button className="btn" onClick={() => exportEventsCsv(s)}>
@@ -65,13 +65,8 @@ export function EventsPage() {
         <input placeholder="Search type, message, batch" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search events" />
         <select
           value={station}
-          onChange={(e) => {
-            const p = new URLSearchParams(params);
-            if (e.target.value === 'all') p.delete('station');
-            else p.set('station', e.target.value);
-            setParams(p, { replace: true });
-          }}
-          aria-label="Station"
+          onChange={(e) => workspace.select(e.target.value === 'all' ? null : (e.target.value as StationId), { inspector: workspace.get().inspectorOpen })}
+          aria-label="Station (follows the canvas selection)"
         >
           <option value="all">All stations</option>
           {STATIONS.map((m) => (

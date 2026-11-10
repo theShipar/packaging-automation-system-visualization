@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
 import { store } from '../app/store';
 import { STATION_META } from '../domain/config';
 import { SCENARIOS, explainComparison, runScenario, type RunResult } from '../domain/scenarios';
 import { LineChart } from '../ui/Charts';
 import { PageHead, pct } from '../ui/Page';
+import { ToolLink } from '../workspace/links';
+import { workspace } from '../workspace/workspaceStore';
 
 const cache = new Map<string, ReturnType<typeof runScenario>>();
 const run = (id: string) => {
@@ -15,7 +16,7 @@ const run = (id: string) => {
 export function SimulationPage() {
   return (
     <div className="page">
-      <PageHead crumbs="Scenario lab" title="Scenarios" sub="Each scenario is a seeded, scripted run of the same engine. Results are reproducible: same seed and script, same numbers." />
+      <PageHead crumbs="Scenario lab" title="Scenario lab" sub="Each scenario is a seeded, scripted run of the same engine. Results are reproducible: same seed and script, same numbers." />
       <div className="grid3">
         {SCENARIOS.map((sc) => (
           <div key={sc.id} className="card scenario">
@@ -24,9 +25,9 @@ export function SimulationPage() {
             <p className="muted">{sc.goal}</p>
             <p style={{ fontSize: 12.5 }}>{sc.description}</p>
             <div className="row" style={{ marginTop: 'auto' }}>
-              <Link className="btn sm blue" to={`/simulation/${sc.id}`}>
+              <ToolLink className="btn sm blue" tool="scenarios" item={sc.id}>
                 Run and compare
-              </Link>
+              </ToolLink>
               <button className="btn sm" onClick={() => store.loadScenario(sc.id)}>
                 Load on line
               </button>
@@ -50,22 +51,21 @@ const ROWS: [keyof RunResult, string, (v: RunResult[keyof RunResult]) => string]
   ['events', 'Events', (v) => Number(v).toLocaleString()],
 ];
 
-export function ScenarioRunPage() {
-  const { id } = useParams();
-  const nav = useNavigate();
+export function ScenarioRunPage({ id }: { id: string }) {
   const sc = SCENARIOS.find((s) => s.id === id);
   const data = useMemo(() => (sc ? { base: run('baseline'), variant: run(sc.id) } : null), [sc]);
   if (!sc || !data)
     return (
       <div className="page">
-        <h1>Scenario not found</h1>
-        <Link to="/simulation">All scenarios</Link>
+        <BackToScenarios />
+        <div className="empty">Scenario {id} was not found.</div>
       </div>
     );
   const { base, variant } = data;
   const isBase = sc.id === 'baseline';
   return (
     <div className="page">
+      <BackToScenarios />
       <PageHead
         crumbs="Scenario lab / Run"
         title={sc.title}
@@ -75,7 +75,7 @@ export function ScenarioRunPage() {
             className="btn primary"
             onClick={() => {
               store.loadScenario(sc.id);
-              nav('/production');
+              workspace.openTool(null);
             }}
           >
             Load on line and watch
@@ -133,5 +133,13 @@ export function ScenarioRunPage() {
         />
       </div>
     </div>
+  );
+}
+
+function BackToScenarios() {
+  return (
+    <ToolLink tool="scenarios" className="back-link">
+      ← All scenarios
+    </ToolLink>
   );
 }
