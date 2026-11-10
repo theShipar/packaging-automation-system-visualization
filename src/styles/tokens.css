@@ -10,11 +10,13 @@
   --lf-surface-muted: #f4f6f8;
   --lf-surface-hover: #eef3f9;
 
-  /* ink (all text colours pass WCAG AA on white and on --lf-app-bg) */
+  /* ink: text colours pass WCAG AA (4.5:1) on white, muted, hover and selected fills */
   --lf-ink: #172337;
   --lf-ink-2: #4e6074;
-  --lf-ink-3: #5f6f83;
-  --lf-ink-4: #8a98aa;
+  --lf-ink-3: #56677b;
+  --lf-ink-4: #5e6e82;
+  /* non-text only (dots, bars, icons, secondary chart lines) */
+  --lf-ink-dim: #8a98aa;
 
   /* lines */
   --lf-border: #e3e9f0;
@@ -28,7 +30,7 @@
   --lf-selected-ring: rgba(83, 127, 175, 0.28);
 
   /* status */
-  --lf-good: #21836d;
+  --lf-good: #1b7562;
   --lf-good-soft: #e3f3ee;
   --lf-warning: #b78638;
   --lf-warning-ink: #85601f;

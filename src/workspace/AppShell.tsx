@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { store, useUi } from '../app/store';
 import { focusComponent, focusStation } from '../camera/commands';
 import { camera } from '../camera/controller';
-import type { StationId } from '../domain/types';
+import { STATION_IDS, type StationId } from '../domain/types';
 import { useReducedMotionSync } from '../vector/Scene';
 import { CanvasRegion } from './CanvasRegion';
 import { InspectorDock } from './InspectorDock';
@@ -54,6 +54,13 @@ export function AppShell() {
       if (e.key === 'f' || e.key === 'F') return camera.fit();
       if (e.key === '+' || e.key === '=') return camera.zoomBy(1.25);
       if (e.key === '-' || e.key === '_') return camera.zoomBy(1 / 1.25);
+      if (e.key === '[' || e.key === ']') {
+        const cur = workspace.get().station;
+        const i = cur ? STATION_IDS.indexOf(cur) : -1;
+        const next = STATION_IDS[(i + (e.key === ']' ? 1 : -1) + STATION_IDS.length) % STATION_IDS.length];
+        workspace.select(next);
+        return focusStation(next);
+      }
       if (e.key !== 'Escape') return;
       if (workspace.back()) return;
       if (store.follow) return store.setFollow(null);

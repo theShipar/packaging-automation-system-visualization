@@ -79,7 +79,7 @@ export function TopCommandBar({ onHelp }: { onHelp: () => void }) {
           {s.status === 'running' ? <IcoPause /> : <IcoPlay />}
           <span>{s.status === 'ready' ? 'Start' : s.status === 'running' ? 'Pause' : 'Resume'}</span>
         </button>
-        <button className="icon-btn" onClick={() => void store.save()} title="Save snapshot of this run to the browser" aria-label="Save snapshot">
+        <button className="icon-btn save" onClick={() => void store.save()} title="Save snapshot of this run to the browser" aria-label="Save snapshot">
           <IcoSave />
         </button>
         <RunMenu s={s} onDialog={setDialog} onHelp={onHelp} />
@@ -220,6 +220,13 @@ function RunMenu({ s, onDialog, onHelp }: { s: Session; onDialog: (d: 'restart' 
       </button>
       {open && (
         <div className="pop pop-right menu" role="menu">
+          <button role="menuitem" className="menu-row narrow-only" onClick={pick(() => void store.save())}>
+            <IcoSave />
+            <span>
+              Save snapshot
+              <small>Keep this run in the browser</small>
+            </span>
+          </button>
           <button role="menuitem" className="menu-row" disabled={s.status === 'completed'} onClick={pick(() => store.fastForward(15 * 60))}>
             <IcoStep />
             <span>

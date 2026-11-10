@@ -1,12 +1,13 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { store, useUi } from '../app/store';
-import { focusComponent, focusSelection } from '../camera/commands';
+import { focusComponent, focusSelection, focusStation } from '../camera/commands';
 import { camera, useCamera } from '../camera/controller';
-import { FAULT_DEF, STATION_META } from '../domain/config';
+import { FAULT_DEF, STATIONS, STATION_META } from '../domain/config';
 import { isOpenFault } from '../domain/engine';
-import { formatClock } from '../domain/kpis';
+import { formatClock, stationView } from '../domain/kpis';
 import type { Session } from '../domain/types';
 import { nextUnitAt } from '../features/follow-product/FollowCard';
+import { statusLabel } from '../ui/Status';
 import { IcoFit, IcoFocus, IcoFollow, IcoMinus, IcoPlus } from '../ui/Icons';
 import { Scene } from '../vector/Scene';
 import { ModeBar, ModePanel } from './ModeBar';
@@ -16,6 +17,13 @@ import { useWorkspace, workspace } from './workspaceStore';
 const NOISE = new Set(['STATION_CYCLE_STARTED', 'STATION_CYCLE_COMPLETED', 'UNIT_RELEASED', 'MATERIAL_CONSUMED', 'QA_INSPECTION_PASSED', 'CASE_OPENED', 'TRANSFER_RESERVED', 'TRANSFER_STARTED', 'TRANSFER_COMPLETED']);
 /** Height kept clear for the notice row at the top of the canvas. */
 const TOP_RESERVE = 56;
+const MIN_SAFE_H = 120;
+/** Panels that float over the canvas at narrow widths instead of taking a layout column. */
+const overlays = () =>
+  [...document.querySelectorAll<HTMLElement>('.insp-dock, .tool-drawer')].filter((o) => {
+    const p = getComputedStyle(o).position;
+    return p === 'absolute' || p === 'fixed';
+  });
 
 /** The canvas owns the remaining space; overlays float over it and the camera frames around them. */
 export function CanvasRegion() {
@@ -32,20 +40,41 @@ export function CanvasRegion() {
       const W = el.clientWidth, H = el.clientHeight;
       if (!W || !H) return;
       const inset = W < 700 ? 12 : 20;
-      const floor = Math.min(H, bot.offsetTop) - 8;
-      const left = panel ? panel.offsetLeft + panel.offsetWidth + 12 : inset;
-      camera.setSafe({ x: left, y: TOP_RESERVE, w: W - left - inset, h: floor - TOP_RESERVE });
+      const box = el.getBoundingClientRect();
+      let left = inset, right = W - inset, padR = 0, padB = 0;
+      for (const o of overlays()) {
+        const r = o.getBoundingClientRect();
+        if (r.width >= box.width * 0.6) {
+          if (r.top - box.top > TOP_RESERVE + MIN_SAFE_H) padB = Math.max(padB, box.bottom - r.top);
+        }
+        else if (r.left > box.left + box.width / 2) padR = Math.max(padR, box.right - r.left);
+        else left = Math.max(left, r.right - box.left + 12);
+      }
+      // overlay controls step aside from floating panels; read layout only after they move
+      el.style.setProperty('--ov-r', `${Math.round(padR)}px`);
+      el.style.setProperty('--ov-b', `${Math.round(padB)}px`);
+      el.toggleAttribute('data-sheet', padB > 0);
+      right -= padR;
+      let floor = Math.min(H, bot.offsetTop) - 8;
+      if (panel) {
+        if (panel.offsetWidth >= W * 0.6) {
+          if (panel.offsetTop - 8 > TOP_RESERVE + MIN_SAFE_H) floor = Math.min(floor, panel.offsetTop - 8);
+        } else left = Math.max(left, panel.offsetLeft + panel.offsetWidth + 12);
+      }
+      camera.setSafe({ x: left, y: TOP_RESERVE, w: Math.max(MIN_SAFE_H, right - left), h: Math.max(MIN_SAFE_H / 2, floor - TOP_RESERVE) });
     };
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     ro.observe(bot);
     if (panel) ro.observe(panel);
+    overlays().forEach((o) => ro.observe(o));
     measure();
     return () => ro.disconnect();
-  }, [panel]);
+  }, [panel, w.inspectorOpen && w.station !== null, w.tool]);
 
   return (
     <main ref={ref} className="ws-canvas" aria-label="Production canvas">
+      <StationNav s={s} />
       <Scene selected={w.station} selectedComp={w.comp} onSelect={(id) => workspace.select(id)} onSelectComp={(c, st) => {
           const id = st ?? w.station;
           if (id) workspace.selectComponent(id, c);
@@ -146,5 +175,44 @@ function LatestEvent({ s }: { s: Session }) {
       <span className="num muted">{formatClock(e.virtualAt)}</span>
       <span className="msg">{e.message}</span>
     </button>
+  );
+}
+
+/** Keyboard path to the machines: a list that stays out of sight until it receives focus. */
+function StationNav({ s }: { s: Session }) {
+  const w = useWorkspace();
+  const list = useRef<HTMLUListElement>(null);
+  const move = (i: number) => (list.current?.querySelectorAll('button')[(i + STATIONS.length) % STATIONS.length] as HTMLElement | undefined)?.focus();
+  return (
+    <nav className="st-nav" aria-label="Machines">
+      <span className="st-nav-h">Machines · ↑ ↓ to move · Enter to inspect · [ ] from anywhere</span>
+      <ul ref={list}>
+        {STATIONS.map((m, i) => {
+          const v = stationView(s, m.id);
+          const fault = s.faults.find((f) => f.station === m.id && isOpenFault(f));
+          return (
+            <li key={m.id}>
+              <button
+                aria-current={w.station === m.id ? 'true' : undefined}
+                onClick={() => {
+                  workspace.select(m.id, { inspector: true });
+                  focusStation(m.id);
+                }}
+                onKeyDown={(e) => {
+                  const to = e.key === 'ArrowDown' ? i + 1 : e.key === 'ArrowUp' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? STATIONS.length - 1 : null;
+                  if (to === null) return;
+                  e.preventDefault();
+                  move(to);
+                }}
+              >
+                <span className="num tert">{m.no}</span>
+                <span>{m.name}</span>
+                <span className={`st-nav-s s-${v.status}`}>{fault ? FAULT_DEF[fault.code].title : statusLabel(v.status)}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }

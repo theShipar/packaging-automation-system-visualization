@@ -7,6 +7,8 @@ export const SHORTCUTS: [string, string][] = [
   ['F  ·  ⌘ 0', 'Fit the whole line'],
   ['+  /  −', 'Zoom in / out around the centre'],
   ['Double-click', 'Focus a machine or part'],
+  ['[  /  ]', 'Previous / next machine'],
+  ['Tab  →  Machines', 'Keyboard list of machines; ↑ ↓ to move, Enter to inspect'],
   ['/', 'Find and follow a serial'],
   ['⌘ K  ·  Ctrl K', 'Find and follow a serial'],
   ['Esc', 'Step back: popover, part, machine, follow, drawer'],

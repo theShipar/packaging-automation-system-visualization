@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { mark, measure } from '../app/perf';
 import { store, useFrame } from '../app/store';
 import { focusComponent, focusStation } from '../camera/commands';
 import { camera } from '../camera/controller';
@@ -55,6 +56,7 @@ interface Props {
 const useLod = () => useSyncExternalStore(camera.subscribe, () => lodOf(camera.zoomRatio()));
 
 export function Scene({ selected, selectedComp, onSelect, onSelectComp }: Props) {
+  mark('lf:scene:start');
   const s = useFrame();
   const [hoverStation, setHoverStation] = useState<StationId | null>(null);
   const [hoverComp, setHoverComp] = useState<string | null>(null);
@@ -67,6 +69,7 @@ export function Scene({ selected, selectedComp, onSelect, onSelectComp }: Props)
   const partStations = [...new Set([selected, lod === 'near' ? hoverStation : null].filter(Boolean) as StationId[])];
 
   useCameraInput(root, () => onSelect(null));
+  useLayoutEffect(() => measure('lf:scene', 'lf:scene:start'));
 
   /* the camera writes the world transform directly; React never re-renders for a camera frame */
   useLayoutEffect(() => {

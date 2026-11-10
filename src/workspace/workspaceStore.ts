@@ -3,6 +3,7 @@
  * Never touches the simulation session; domain changes go through `store.command`.
  */
 import { useSyncExternalStore } from 'react';
+import { mark } from '../app/perf';
 import { pref, setPref } from '../app/persist';
 import { STATION_IDS, type StationId } from '../domain/types';
 
@@ -66,6 +67,7 @@ class WorkspaceStore {
     let changed = false;
     for (const k of Object.keys(patch) as (keyof WorkspaceState)[]) if (this.state[k] !== patch[k]) changed = true;
     if (!changed) return;
+    if (patch.inspectorOpen && !this.state.inspectorOpen) mark('lf:inspector:start');
     this.state = { ...this.state, ...patch };
     this.ls.forEach((l) => l());
   }

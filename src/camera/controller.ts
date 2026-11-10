@@ -4,6 +4,7 @@
  * tracks a unit with a dead-zone using a fixed interpolation timestep.
  */
 import { useSyncExternalStore } from 'react';
+import { mark, measure } from '../app/perf';
 import { store } from '../app/store';
 import {
   camEq,
@@ -193,7 +194,8 @@ class CameraController {
     if (!p) return store.session.status === 'running';
     const r = this.safe;
     const sTarget = Math.min(this.lim.max, Math.max(this.cam.s, fitScale(this.content, r) * FOLLOW_ZOOM));
-    const a = 1 - Math.exp(-FOLLOW_RATE * STEP);
+    // Reduced motion: no easing; the camera steps straight to the dead-zone edge.
+    const a = this.reduced ? 1 : 1 - Math.exp(-FOLLOW_RATE * STEP);
     const before = this.cam;
     let c = this.cam;
     this.acc = Math.min(this.acc + dt, 0.25);
@@ -226,6 +228,7 @@ class CameraController {
       return this.emit();
     }
     this.anim = { from: this.cam, to, t: 0, dur: dur / 1000 };
+    mark('lf:cam:start');
     if (!this.animOff) this.animOff = store.addStepper(this.animStep, { quiet: true });
   }
 
@@ -240,6 +243,7 @@ class CameraController {
     this.emit();
     if (a.t >= a.dur) {
       this.cam = a.to;
+      measure(`lf:cam:${this.mode}`, 'lf:cam:start');
       this.cancelAnim();
       return false;
     }
