@@ -79,11 +79,12 @@ export function SceneOverlay({ s, selected, hover, hoverComp, badges, onSelect, 
         </>
       )}
       {badges.map((b) => {
+        if (lod === 'far' && b.count < 3) return null;
         const [x, y] = project(c, ...screenAt(b.at));
         if (x < left || x > right || y < top || y > bottom) return null;
         return (
           <span key={b.key} className="q-badge" style={at(x, y + 10 * c.s)} title={b.label}>
-            +{b.count}
+            {lod !== 'near' && b.count > 20 ? '20+' : `+${b.count}`}
           </span>
         );
       })}

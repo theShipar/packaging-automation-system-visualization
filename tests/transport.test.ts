@@ -6,8 +6,8 @@ import { checkInvariants, sessionHash } from '../src/domain/invariants';
 import { unitCounts } from '../src/domain/kpis';
 import { completeTransfer } from '../src/domain/transfer';
 import { STATION_IDS, type Session, type StationId } from '../src/domain/types';
-import { CASE_FEED, IN_LANE, REJECT_LANES, TRANSFER_LANE } from '../src/transport/graph';
-import { PORTS, lanePoint } from '../src/transport/layout';
+import { BRIDGE_SCALE, CASE_FEED, IN_LANE, MOUTHS, REJECT_LANES, TRANSFER_LANE } from '../src/transport/graph';
+import { BRIDGE_X, PORTS, ROW_Y } from '../src/transport/layout';
 import { frameUnits, machinePose, mechanics, type UnitPose } from '../src/transport/poses';
 import { queueBadges } from '../src/transport/queueLayout';
 import { robotKit, robotPhase } from '../src/transport/robotChoreography';
@@ -45,12 +45,14 @@ function poses(s: Session) {
 const STEP = BELT_SPEED * RAMP_STRETCH * FRAME + EPS;
 
 /** Mouths are the only places a unit may appear or disappear on the main line. */
-function atMouth(at: V3) {
-  for (const id of STATION_IDS) {
-    if (dist(at, lanePoint(PORTS[id].in)) < STEP) return true;
-    if (id !== 'dispatch' && dist(at, lanePoint(PORTS[id].out)) < STEP) return true;
-  }
-  return false;
+const atMouth = (at: V3) => MOUTHS.some((m) => dist(at, m) < STEP * BRIDGE_SCALE);
+
+/** Robot outfeed, robot→QA transfer and QA infeed share the bridge path, drawn BRIDGE_SCALE× longer. */
+function onBridge(s: Session, u: ReturnType<typeof unitOf>) {
+  if (u.slot === 'out' && u.station === 'robot') return true;
+  if (u.slot === 'in' && u.station === 'qa') return true;
+  if (u.slot === 'machine' && u.station === 'qa') return true;
+  return u.slot === 'transfer' && s.transfers.some((t) => t.unitId === u.id && t.from === 'robot');
 }
 const inFeeder = (at: V3) => Math.abs(at[1]) < EPS && at[0] >= PORTS.intake.in - EPS && at[0] <= PORTS.intake.in + SLOT + 1 + STEP;
 /** Below the rim of the open case: the kit is inside it. */
@@ -95,7 +97,7 @@ function sweep(s: Session, until: number, onFrame?: (s: Session, f: number) => v
         continue;
       }
       const u = unitOf(s, id);
-      let bound = BELT_SPEED * RAMP_STRETCH * dt;
+      let bound = BELT_SPEED * RAMP_STRETCH * dt * (onBridge(s, u) ? BRIDGE_SCALE : 1);
       if (u.slot === 'machine' && u.station === 'robot') bound = Math.max(bound, ARM_GAIN * Math.abs((m.robot.m ?? 0) - (lastM.robot.m ?? 0)));
       if (u.slot === 'machine' && u.station === 'dispatch') bound = Math.max(bound, CASE_FEED.length * Math.abs((m.dispatch.m ?? 0) - (lastM.dispatch.m ?? 0)));
       const ratio = d / (bound + EPS);
@@ -115,13 +117,19 @@ function sweep(s: Session, until: number, onFrame?: (s: Session, f: number) => v
   return r;
 }
 
+/** Both row lines (gap along x ≥ kit length) and the bridge column (gap along y ≥ kit width). */
 function mainLaneOverlaps(units: UnitPose[], s: Session): string[] {
-  const lane = units.filter((u) => Math.abs(u.at[1]) < 1e-6 && !(unitOf(s, u.id).slot === 'machine' && unitOf(s, u.id).station === 'robot')).sort((a, b) => a.at[0] - b.at[0]);
+  const held = (u: UnitPose) => unitOf(s, u.id).slot === 'machine' && unitOf(s, u.id).station === 'robot';
   const out: string[] = [];
-  for (let i = 1; i < lane.length; i++) {
-    const a = lane[i - 1], b = lane[i];
-    if (b.at[0] - a.at[0] < KIT.L - 1e-6) out.push(`${a.id}/${b.id} gap ${(b.at[0] - a.at[0]).toFixed(3)} at x=${a.at[0].toFixed(1)} t=${s.t.toFixed(3)}`);
-  }
+  const check = (line: UnitPose[], axis: 0 | 1, min: number, name: string) => {
+    line.sort((a, b) => a.at[axis] - b.at[axis]);
+    for (let i = 1; i < line.length; i++) {
+      const a = line[i - 1], b = line[i];
+      if (b.at[axis] - a.at[axis] < min - 1e-6) out.push(`${name} ${a.id}/${b.id} gap ${(b.at[axis] - a.at[axis]).toFixed(3)} t=${s.t.toFixed(3)}`);
+    }
+  };
+  for (const y of ROW_Y) check(units.filter((u) => Math.abs(u.at[1] - y) < 1e-6 && !held(u)), 0, KIT.L, `row y=${y}`);
+  check(units.filter((u) => Math.abs(u.at[0] - BRIDGE_X) < 1e-6), 1, KIT.W, 'bridge');
   return out;
 }
 

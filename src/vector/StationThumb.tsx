@@ -1,11 +1,11 @@
 import { memo, useMemo } from 'react';
 import { useFrame } from '../app/store';
 import type { StationId } from '../domain/types';
-import { CAM } from '../transport/layout';
+import { CAM, PLACE } from '../transport/layout';
 import { machinePose } from '../transport/poses';
 import { makeView, restPose, type MachinePose } from './builder';
 import { FIGURES } from './figures';
-import { bounds, cam, fit, proj } from './iso';
+import { bounds, cam, fit, proj, type V3 } from './iso';
 import { Shapes } from './ProductLayer';
 import { drawStation } from './sceneModel';
 
@@ -13,14 +13,18 @@ const TW = 320;
 const TH = 190;
 const AZ = (CAM.az * 180) / Math.PI;
 
+/** Same handedness as on the line: row 2 machines are drawn mirrored. */
 function useThumbView(id: StationId, fill: number) {
   return useMemo(() => {
-    const ext = FIGURES[id].extent;
+    const mirror = PLACE[id].mirror;
+    const flip = (p: V3): V3 => (mirror ? [-p[0], p[1], p[2]] : p);
+    const ext = FIGURES[id].extent.map(flip);
     const b = bounds(cam(AZ, CAM.k, 1), ext);
     const S = Math.min((TW * fill) / (b.x1 - b.x0), (TH * fill * 0.93) / (b.y1 - b.y0));
     const C = cam(AZ, CAM.k, S);
     fit(C, ext, TW / 2, TH / 2);
-    return makeView(C, proj(C));
+    const P = proj(C);
+    return makeView(C, (x, y, z) => P(mirror ? -x : x, y, z), flip, mirror);
   }, [id, fill]);
 }
 

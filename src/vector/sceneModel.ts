@@ -1,9 +1,9 @@
 import { boundsOf, type Bounds } from '../camera/camera';
 import { STATION_IDS, type StationId } from '../domain/types';
-import { EXIT_RUN, LANES } from '../transport/graph';
-import { CAM, CONNECTORS, GLOBAL_VIEW, GP, GP0, PLACE, PORTS, VIEWS, toWorld } from '../transport/layout';
+import { EXIT_DIR, EXIT_RUN, LANES } from '../transport/graph';
+import { BELT_HALF, BRIDGE_X, CAM, CONNECTORS, GLOBAL_VIEW, GP, GP0, PLACE, PORTS, ROW_OF, ROW_Y, VIEWS, rowPoint, rowX, toWorld, type Row } from '../transport/layout';
 import { robotJoints } from '../transport/robotChoreography';
-import { Builder, makeView, restPose, type FrontGroup, type MachinePose, type Shape, type View } from './builder';
+import { Builder, depthKey, makeView, restPose, type FrontGroup, type MachinePose, type Shape, type View } from './builder';
 import { CARTON, CASE, FIGURES, PALLET_SLOTS, drawCarton } from './figures';
 import { hull, open, poly, ringAt, rings, rrect, run, seg, type Pt, type V3 } from './iso';
 
@@ -94,7 +94,7 @@ function drawnBounds() {
   for (const lane of LANES) for (let d = 0; d <= lane.length; d += 6) productBox(lane.poseAt(d), CARTON.L, CARTON.W, CARTON.H).forEach((p) => add(GP(p[0], p[1], p[2])));
   for (const slot of PALLET_SLOTS) {
     const w = toWorld('dispatch', slot);
-    productBox([w[0] + EXIT_RUN, w[1], w[2]], CASE.L, CASE.W, CASE.H).forEach((p) => add(GP(p[0], p[1], p[2])));
+    productBox([w[0] + EXIT_DIR * EXIT_RUN, w[1], w[2]], CASE.L, CASE.W, CASE.H).forEach((p) => add(GP(p[0], p[1], p[2])));
   }
   return { x0, x1, y0, y1 };
 }
@@ -110,15 +110,43 @@ export const CONTENT_BOUNDS: Bounds = { minX: PAD.l, minY: PAD.t, maxX: VIEW_W -
 
 /* ---------------------------------------------------------------- connectors (after the camera is fitted) */
 
-const CONNECTOR_W = 12;
+export interface BeltPiece {
+  key: string;
+  row: Row;
+  depth: number;
+  shapes: Shape[];
+}
 
-export const CONNECTOR_SHAPES: Shape[][] = CONNECTORS.map((c) => {
+/** A flat belt between two world corners with rollers across the direction of travel. */
+function belt(x0: number, y0: number, x1: number, y1: number, along: 'x' | 'y'): Shape[] {
   const b = new Builder(GLOBAL_VIEW, null);
   const { P } = GLOBAL_VIEW;
-  b.box(c.x0 - 2, -CONNECTOR_W, c.x1 + 2, CONNECTOR_W, 0, 12, 3, 1.2);
-  for (let x = c.x1 - 7; x > c.x0 + 2; x -= 14) b.line(seg(P(x, -CONNECTOR_W + 3, 12), P(x, CONNECTOR_W - 3, 12)));
+  b.box(x0, y0, x1, y1, 0, 12, 3, 1.2);
+  if (along === 'x') for (let x = x1 - 7; x > x0 + 2; x -= 14) b.line(seg(P(x, y0 + 3, 12), P(x, y1 - 3, 12)));
+  else for (let y = y1 - 7; y > y0 + 2; y -= 14) b.line(seg(P(x0 + 3, y, 12), P(x1 - 3, y, 12)));
   return b.shapes;
+}
+
+const centreDepth = (x0: number, y0: number, x1: number, y1: number) => depthKey((x0 + x1) / 2, (y0 + y1) / 2, 0);
+
+export const CONNECTOR_PIECES: BeltPiece[] = CONNECTORS.map((c) => {
+  const xa = rowX(c.row, c.s0), xb = rowX(c.row, c.s1);
+  const x0 = Math.min(xa, xb) - 2, x1 = Math.max(xa, xb) + 2, y = ROW_Y[c.row];
+  return { key: `${c.from}->${c.to}`, row: c.row, depth: centreDepth(x0, y - BELT_HALF, x1, y + BELT_HALF), shapes: belt(x0, y - BELT_HALF, x1, y + BELT_HALF, 'x') };
 });
+
+/** The U-turn: outfeed stub, cross column, infeed stub. Painted with the first row, under everything nearer. */
+export const BRIDGE_PIECES: BeltPiece[] = (() => {
+  const end = rowX(0, PLACE.robot.s0 + FIGURES.robot.xExit);
+  const start2 = rowX(1, PLACE.qa.s0 + FIGURES.qa.xEntry);
+  const [y0, y1] = ROW_Y, h = BELT_HALF;
+  const pieces: [string, number, number, number, number, 'x' | 'y'][] = [
+    ['bridge-out', end - 2, y0 - h, BRIDGE_X - h + 1, y0 + h, 'x'],
+    ['bridge-cross', BRIDGE_X - h, y0 - h, BRIDGE_X + h, y1 + h, 'y'],
+    ['bridge-in', start2 - 2, y1 - h, BRIDGE_X - h + 1, y1 + h, 'x'],
+  ];
+  return pieces.map(([key, x0, ya, x1, yb, along]) => ({ key, row: 0 as Row, depth: centreDepth(x0, ya, x1, yb), shapes: belt(x0, ya, x1, yb, along) }));
+})();
 
 /* ---------------------------------------------------------------- hit proxies and labels */
 
@@ -143,7 +171,8 @@ export const GEOMETRY: Record<StationId, StationGeometry> = Object.fromEntries(
       compBounds[c] = boundsOf(pts);
     }
     const f = FIGURES[id];
-    const anchor = GP(PLACE[id].dx + (f.xEntry + f.xExit) / 2, 44, 0);
+    const a = toWorld(id, [(f.xEntry + f.xExit) / 2, f.lane + 30, 0]);
+    const anchor = GP(a[0], a[1], a[2]);
     let maxY = -1e9;
     for (const p of h) maxY = Math.max(maxY, p[1]);
     return [id, { hull: h, hullD: poly(h), bounds: boundsOf(h), comps, compBounds, label: [anchor[0], Math.min(anchor[1], maxY + 10)] as Pt }];
@@ -151,7 +180,21 @@ export const GEOMETRY: Record<StationId, StationGeometry> = Object.fromEntries(
 ) as Record<StationId, StationGeometry>;
 
 /** Entry and exit marks: where goods enter (intake tray) and leave (pallet exit). */
-export const FLOW_MARKS = {
-  entry: GP(PORTS.intake.in - 50, 0, 0),
-  exit: GP(PLACE.dispatch.dx + FIGURES.dispatch.xExit + EXIT_RUN - 10, 0, 0),
+const flowAt = (row: Row, s: number): Pt => {
+  const p = rowPoint(row, s);
+  return GP(p[0], p[1], 0);
 };
+export const FLOW_MARKS = {
+  entry: flowAt(0, PORTS.intake.in - 50),
+  exit: flowAt(1, PLACE.dispatch.s0 + FIGURES.dispatch.xExit + EXIT_RUN / 3),
+};
+
+/** Paint order of a station within its row: far (small depth key) first. */
+export const STATION_DEPTH = Object.fromEntries(
+  STATION_IDS.map((id) => {
+    const f = FIGURES[id];
+    const c = toWorld(id, [(f.xEntry + f.xExit) / 2, f.lane, 0]);
+    return [id, depthKey(c[0], c[1], 0)];
+  }),
+) as Record<StationId, number>;
+export { ROW_OF };

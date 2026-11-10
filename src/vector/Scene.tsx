@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { store, useFrame } from '../app/store';
 import { focusComponent, focusStation } from '../camera/commands';
 import { camera } from '../camera/controller';
@@ -9,20 +9,27 @@ import { isOpenFault } from '../domain/engine';
 import { effectiveStatus } from '../domain/kpis';
 import { STATION_IDS, type Session, type StationId } from '../domain/types';
 import { FollowCard } from '../features/follow-product/FollowCard';
-import { LANES } from '../transport/graph';
-import { PORTS, lanePoint } from '../transport/layout';
+import { IN_LANE, LANES, OUT_LANE } from '../transport/graph';
+import { PORTS, ROW_OF } from '../transport/layout';
 import { describeUnit, frameUnits, machinePose, type UnitPose } from '../transport/poses';
 import { queueBadges } from '../transport/queueLayout';
 import { statusLabel } from '../ui/Status';
 import { type MachinePose } from './builder';
-import { setReducedMotion } from './iso';
-import { SceneOverlay } from './SceneOverlay';
-import { Shapes, productItems } from './ProductLayer';
-import { CONNECTOR_SHAPES, GEOMETRY, drawStation, screenAt, type StationDrawing } from './sceneModel';
+import { setReducedMotion, type V3 } from './iso';
+import { SceneOverlay, lodOf } from './SceneOverlay';
+import { Shapes, productItems, type DepthItem } from './ProductLayer';
+import { BRIDGE_PIECES, CONNECTOR_PIECES, GEOMETRY, STATION_DEPTH, drawStation, screenAt, type StationDrawing } from './sceneModel';
 
 const COMP_STATION = Object.fromEntries(COMPONENTS.map((c) => [c.id, c.station])) as Record<string, StationId>;
 const COMP_NAME = Object.fromEntries(COMPONENTS.map((c) => [c.id, c.name])) as Record<string, string>;
-const FAR_TO_NEAR = [...STATION_IDS].reverse();
+const ROWS = [0, 1] as const;
+/** Per row, far to near: station bodies and the belts between them. */
+const BACK_ORDER = ROWS.map((row) =>
+  [
+    ...STATION_IDS.filter((id) => ROW_OF[id] === row).map((id) => ({ kind: 'station' as const, id, depth: STATION_DEPTH[id] })),
+    ...[...CONNECTOR_PIECES, ...BRIDGE_PIECES].filter((p) => p.row === row).map((p) => ({ kind: 'belt' as const, id: p.key, depth: p.depth, shapes: p.shapes })),
+  ].sort((a, b) => a.depth - b.depth),
+);
 const params = typeof location === 'undefined' ? new URLSearchParams() : new URLSearchParams(location.search);
 const DEBUG = params.get('debug') === 'transport';
 const PERF = params.has('perf') || DEBUG;
@@ -41,8 +48,11 @@ interface Props {
   selected: StationId | null;
   selectedComp: string | null;
   onSelect: (id: StationId | null) => void;
-  onSelectComp: (comp: string | null) => void;
+  onSelectComp: (comp: string | null, station?: StationId) => void;
 }
+
+/** Re-renders only when the zoom crosses a level-of-detail boundary. */
+const useLod = () => useSyncExternalStore(camera.subscribe, () => lodOf(camera.zoomRatio()));
 
 export function Scene({ selected, selectedComp, onSelect, onSelectComp }: Props) {
   const s = useFrame();
@@ -52,11 +62,11 @@ export function Scene({ selected, selectedComp, onSelect, onSelectComp }: Props)
   const root = useRef<HTMLDivElement>(null);
   const world = useRef<SVGGElement>(null);
   const follow = store.follow;
+  const lod = useLod();
+  /* parts answer the pointer on the selected machine, and on any hovered machine once close */
+  const partStations = [...new Set([selected, lod === 'near' ? hoverStation : null].filter(Boolean) as StationId[])];
 
-  useCameraInput(root, () => {
-    onSelect(null);
-    onSelectComp(null);
-  });
+  useCameraInput(root, () => onSelect(null));
 
   /* the camera writes the world transform directly; React never re-renders for a camera frame */
   useLayoutEffect(() => {
@@ -87,8 +97,13 @@ export function Scene({ selected, selectedComp, onSelect, onSelectComp }: Props)
   /* ---- build this frame ---- */
   const drawings = {} as Record<StationId, StationDrawing>;
   const status = {} as Record<StationId, string>;
+  const partRole = {} as Record<StationId, string>;
   for (const id of STATION_IDS) {
-    const hc = hoverComp && COMP_STATION[hoverComp] === id ? hoverComp : selectedComp && COMP_STATION[selectedComp] === id ? selectedComp : faultComp(s, id);
+    const hovered = hoverComp && COMP_STATION[hoverComp] === id ? hoverComp : null;
+    const chosen = selectedComp && COMP_STATION[selectedComp] === id ? selectedComp : null;
+    const faulted = faultComp(s, id);
+    const hc = hovered ?? chosen ?? faulted;
+    partRole[id] = hovered ? ' part-hover' : chosen ? ' part-sel' : faulted ? ' part-fault' : '';
     const pose = machinePose(s, id, 0);
     const key = poseKey(pose, hc);
     const hit = cache.current.get(id);
@@ -98,7 +113,7 @@ export function Scene({ selected, selectedComp, onSelect, onSelectComp }: Props)
       cache.current.set(id, { key, d });
       drawings[id] = d;
     }
-    status[id] = `station st-${effectiveStatus(s, id)}${id === selected ? ' is-focus' : ''}${id === hoverStation ? ' is-hover' : ''}`;
+    status[id] = `station st-${effectiveStatus(s, id)}${id === selected ? ' is-focus' : ''}${id === hoverStation ? ' is-hover' : ''}${partRole[id]}`;
   }
 
   const { units, items } = productItems(s, follow);
@@ -107,6 +122,7 @@ export function Scene({ selected, selectedComp, onSelect, onSelectComp }: Props)
       items.push({
         key: `${id}:${g.name}`,
         depth: g.key,
+        row: ROW_OF[id],
         node: (
           <g key={`${id}:${g.name}`} className={status[id]}>
             <Shapes shapes={g.shapes} />
@@ -114,30 +130,32 @@ export function Scene({ selected, selectedComp, onSelect, onSelectComp }: Props)
         ),
       });
   items.sort((a, b) => a.depth - b.depth || (a.key < b.key ? -1 : 1));
+  const byRow: DepthItem[][] = [[], []];
+  for (const it of items) byRow[it.row].push(it);
   const badges = queueBadges(s);
 
   return (
     <div ref={root} className={`scene${follow ? ' following' : ''}${hoverStation ? ' has-hover' : ''}${selected ? ' has-focus' : ''}`}>
       <svg className="hl" width="100%" height="100%" role="group" aria-label="Packaging line, six stations from intake to dispatch">
         <g ref={world}>
-          <g className="layer-back">
-            {FAR_TO_NEAR.map((id) => {
-              const i = STATION_IDS.indexOf(id);
-              return (
-                <g key={id}>
-                  <g className={status[id]}>
-                    <Shapes shapes={drawings[id].back} />
-                  </g>
-                  {i > 0 && (
-                    <g className="conn">
-                      <Shapes shapes={CONNECTOR_SHAPES[i - 1]} />
+          {ROWS.map((row) => (
+            <g key={row} className={`row row-${row + 1}`}>
+              <g className="layer-back">
+                {BACK_ORDER[row].map((e) =>
+                  e.kind === 'station' ? (
+                    <g key={e.id} className={status[e.id]}>
+                      <Shapes shapes={drawings[e.id].back} />
                     </g>
-                  )}
-                </g>
-              );
-            })}
-          </g>
-          <g className="layer-mid">{items.map((it) => it.node)}</g>
+                  ) : (
+                    <g key={e.id} className="conn">
+                      <Shapes shapes={e.shapes} />
+                    </g>
+                  ),
+                )}
+              </g>
+              <g className="layer-mid">{byRow[row].map((it) => it.node)}</g>
+            </g>
+          ))}
           <g className="layer-over">
             {STATION_IDS.map((id) => {
               const fc = faultComp(s, id);
@@ -164,7 +182,7 @@ export function Scene({ selected, selectedComp, onSelect, onSelectComp }: Props)
                   onBlur={() => setHoverStation(null)}
                   onClick={() => {
                     onSelect(id);
-                    onSelectComp(null);
+                    onSelectComp(null, id);
                   }}
                   onDoubleClick={() => focusStation(id)}
                   onKeyDown={(e) => {
@@ -176,25 +194,31 @@ export function Scene({ selected, selectedComp, onSelect, onSelectComp }: Props)
                 />
               );
             })}
-            {selected &&
-              Object.entries(GEOMETRY[selected].comps).map(([comp, d]) => (
+            {partStations.map((sid) =>
+              Object.entries(GEOMETRY[sid].comps).map(([comp, d]) => (
                 <path
                   key={comp}
                   d={d}
                   className="hit-comp"
+                  data-comp={comp}
                   aria-label={`${COMP_NAME[comp] ?? comp} (${comp})`}
-                  onPointerEnter={() => setHoverComp(comp)}
+                  onPointerEnter={() => {
+                    setHoverComp(comp);
+                    setHoverStation(sid);
+                  }}
                   onPointerLeave={() => setHoverComp((h) => (h === comp ? null : h))}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onSelectComp(comp);
+                    if (sid !== selected) onSelect(sid);
+                    onSelectComp(comp, sid);
                   }}
                   onDoubleClick={(e) => {
                     e.stopPropagation();
-                    focusComponent(selected, comp);
+                    focusComponent(sid, comp);
                   }}
                 />
-              ))}
+              )),
+            )}
             {units.map((u) => {
               const [x, y] = screenAt(u.at);
               return (
@@ -262,14 +286,14 @@ function TransportDebug({ s, units }: { s: Session; units: UnitPose[] }) {
       ))}
       {STATION_IDS.map((id) => {
         const p = PORTS[id];
-        const marks: [string, number][] = [
-          ['in', p.in],
-          ['work', p.work[0]],
-          ['out', p.out],
+        const marks: [string, V3][] = [
+          ['in', IN_LANE[id].from],
+          ['work', p.work],
         ];
-        if (p.exitFrom !== p.work[0]) marks.push(['place', p.exitFrom]);
-        return marks.map(([name, x]) => {
-          const [sx, sy] = screenAt(lanePoint(x));
+        if (id !== 'dispatch') marks.push(['out', OUT_LANE[id].to]);
+        if (p.exitFrom !== p.workS) marks.push(['place', OUT_LANE[id].from]);
+        return marks.map(([name, at]) => {
+          const [sx, sy] = screenAt(at);
           return (
             <g key={`${id}:${name}`}>
               <circle cx={sx} cy={sy} r={2.2} className="dbg-port" />

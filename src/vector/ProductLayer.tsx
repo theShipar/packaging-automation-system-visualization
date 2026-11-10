@@ -2,6 +2,7 @@ import { memo, type ReactNode } from 'react';
 import type { Session } from '../domain/types';
 import { casePoses, frameUnits, type UnitPose } from '../transport/poses';
 import { depthKey, type Shape } from './builder';
+import { ROW_Y } from '../transport/layout';
 import { CASE } from './figures';
 import { CARTON_SHAPES, KIT_SHAPES, SEALED_CASE_SHAPES, openCaseShapes, screenAt } from './sceneModel';
 
@@ -18,8 +19,12 @@ export const Shapes = memo(function Shapes({ shapes }: { shapes: Shape[] }) {
 export interface DepthItem {
   key: string;
   depth: number;
+  /** Factory row the item is painted with (row 2 is nearer and paints over row 1). */
+  row: 0 | 1;
   node: ReactNode;
 }
+
+const rowOf = (y: number): 0 | 1 => (y > ROW_Y[1] / 2 ? 1 : 0);
 
 /**
  * One persistent node per unit (keyed by unitId) and per case (keyed by caseId), positioned
@@ -28,14 +33,14 @@ export interface DepthItem {
  */
 export function productItems(s: Session, follow: string | null): { units: UnitPose[]; items: DepthItem[] } {
   const units = frameUnits(s);
-  const items: DepthItem[] = units.map((u) => ({ key: u.id, depth: u.key, node: <UnitNode key={u.id} u={u} followed={u.id === follow} /> }));
+  const items: DepthItem[] = units.map((u) => ({ key: u.id, depth: u.key, row: rowOf(u.at[1]), node: <UnitNode key={u.id} u={u} followed={u.id === follow} /> }));
   for (const c of casePoses(s)) {
     const [x, y] = screenAt(c.at);
     if (c.open) {
       const parts = openCaseShapes(c.fill);
-      items.push({ key: `${c.id}:b`, depth: depthKey(c.at[0] + CASE.L / 2, c.at[1] - CASE.W / 2, c.at[2]), node: <CaseNode key={`${c.id}:b`} x={x} y={y} shapes={parts.back} /> });
-      items.push({ key: `${c.id}:f`, depth: depthKey(c.at[0] - CASE.L / 2, c.at[1] + CASE.W / 2, c.at[2]), node: <CaseNode key={`${c.id}:f`} x={x} y={y} shapes={parts.front} /> });
-    } else items.push({ key: c.id, depth: depthKey(c.at[0], c.at[1], c.at[2]), node: <CaseNode key={c.id} x={x} y={y} shapes={SEALED_CASE_SHAPES} /> });
+      items.push({ key: `${c.id}:b`, row: rowOf(c.at[1]), depth: depthKey(c.at[0] + CASE.L / 2, c.at[1] - CASE.W / 2, c.at[2]), node: <CaseNode key={`${c.id}:b`} x={x} y={y} shapes={parts.back} /> });
+      items.push({ key: `${c.id}:f`, row: rowOf(c.at[1]), depth: depthKey(c.at[0] - CASE.L / 2, c.at[1] + CASE.W / 2, c.at[2]), node: <CaseNode key={`${c.id}:f`} x={x} y={y} shapes={parts.front} /> });
+    } else items.push({ key: c.id, row: rowOf(c.at[1]), depth: depthKey(c.at[0], c.at[1], c.at[2]), node: <CaseNode key={c.id} x={x} y={y} shapes={SEALED_CASE_SHAPES} /> });
   }
   return { units, items };
 }

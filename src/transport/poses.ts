@@ -10,7 +10,7 @@ import { STATION_IDS, type Session, type StationId, type Unit } from '../domain/
 import { depthKey, restPose, type MachinePose } from '../vector/builder';
 import { CASE } from '../vector/figures';
 import { clamp, type V3 } from '../vector/iso';
-import { CASE_FEED, EXIT_RUN, IN_LANE, OUT_LANE, PALLET_LANES, REJECT_LANES, TRANSFER_LANE } from './graph';
+import { CASE_FEED, EXIT_DIR, EXIT_RUN, IN_LANE, OUT_LANE, PALLET_LANES, REJECT_LANES, TRANSFER_LANE } from './graph';
 import { toWorld } from './layout';
 import { inVisible, outVisible } from './queueLayout';
 import { robotJoints, robotKit, robotPhase } from './robotChoreography';
@@ -153,7 +153,7 @@ export function casePoses(s: Session): CasePose[] {
       const c = s.cases.find((x) => x.id === cid);
       if (!c || j >= PALLET_LANES.length) return;
       const start = palletAt(j, sh.at - (c.sealedAt ?? sh.at));
-      out.push({ id: c.id, at: [start[0] + CASE_SPEED * (s.t - sh.at), start[1], start[2]], open: false, fill: 1 });
+      out.push({ id: c.id, at: [start[0] + EXIT_DIR * CASE_SPEED * (s.t - sh.at), start[1], start[2]], open: false, fill: 1 });
     });
   }
   return out;

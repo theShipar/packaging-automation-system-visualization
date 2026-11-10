@@ -355,7 +355,6 @@ input[type='checkbox'] { accent-color: var(--lf-selected-strong); width: 15px; h
 .hl .hit { fill: transparent; stroke: none; cursor: pointer; outline: none; }
 .hl .hit:focus-visible { stroke: var(--lf-selected); stroke-width: 1.5; stroke-dasharray: 4 3; }
 .hl .hit-comp { fill: transparent; stroke: transparent; cursor: pointer; }
-.hl .hit-comp:hover { stroke: var(--lf-selected); stroke-dasharray: 2 2; }
 .hl.thumb { width: 100%; height: auto; display: block; }
 
 .hl .station, .hl .conn { transition: opacity var(--lf-ui-standard) var(--lf-ease-out); }
@@ -366,8 +365,16 @@ input[type='checkbox'] { accent-color: var(--lf-selected-strong); width: 15px; h
 .hl .station.is-focus .mach.nf { fill: none; }
 .hl .station.is-focus .mach.dot { fill: var(--lf-selected-strong); }
 .hl .station.st-faulted:not(.is-focus) .mach, .hl .station.st-maintenance:not(.is-focus) .mach { fill: var(--lf-error-soft); }
+/* part highlight on the part's real paths: selected quiets the rest of the machine */
+.hl .station.part-sel .sil.mach:not(.part) { fill: var(--lf-surface); stroke: var(--lf-selected); }
+.hl .station.part-sel .part.sil, .hl .station.part-hover .part.sil { fill: var(--lf-selected-part); stroke: var(--lf-selected-strong); stroke-width: 1.35; }
+.hl .station.part-sel .part.nf, .hl .station.part-hover .part.nf { stroke: var(--lf-selected-strong); }
+.hl .station.part-hover:not(.is-focus) .part.sil { fill: var(--lf-selected-fill); }
+.hl .station.part-fault .part.sil { fill: var(--lf-error-soft); stroke: var(--lf-error); }
 .hl.thumb .focus .mach { fill: var(--lf-selected-fill); stroke: var(--lf-selected); }
 .hl.thumb .focus .mach.nf { fill: none; }
+.hl.thumb .part.sil { fill: var(--lf-selected-part); stroke: var(--lf-selected-strong); stroke-width: 1.35; }
+.hl.thumb .part.nf { stroke: var(--lf-selected-strong); }
 .hl .product.followed .sil { stroke: var(--lf-selected-strong); stroke-width: 1.6; }
 .hl .hit-unit { fill: transparent; stroke: none; cursor: pointer; }
 

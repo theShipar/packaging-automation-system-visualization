@@ -9,7 +9,8 @@ import { unitOf } from '../domain/core';
 import { portClearAt } from '../domain/transfer';
 import type { Session, StationId } from '../domain/types';
 import type { V3 } from '../vector/iso';
-import { CONNECTORS, PORTS, lanePoint } from './layout';
+import { BRIDGE } from './graph';
+import { CONNECTORS, PORTS, rowPoint } from './layout';
 
 /** Infeed: one of the drawn slots, and not held at the mouth waiting for clearance. */
 export function inVisible(s: Session, id: StationId, i: number): boolean {
@@ -41,10 +42,12 @@ export function queueBadges(s: Session): Badge[] {
   const hiddenIn = (id: StationId) => count(id, s.stations[id].inQ, inVisible);
   const hiddenOut = (id: StationId) => count(id, s.stations[id].outQ, outVisible);
   const feed = hiddenIn('intake');
-  if (feed) out.push({ key: 'feed', at: lanePoint(PORTS.intake.in - 4), count: feed, label: `${feed} released, waiting at the feeder` });
+  if (feed) out.push({ key: 'feed', at: rowPoint(0, PORTS.intake.in - 4), count: feed, label: `${feed} released, waiting at the feeder` });
   for (const c of CONNECTORS) {
     const n = hiddenOut(c.from) + hiddenIn(c.to);
-    if (n) out.push({ key: `${c.from}->${c.to}`, at: lanePoint((c.x0 + c.x1) / 2), count: n, label: `${n} queued between ${c.from} and ${c.to}` });
+    if (n) out.push({ key: `${c.from}->${c.to}`, at: rowPoint(c.row, (c.s0 + c.s1) / 2), count: n, label: `${n} queued between ${c.from} and ${c.to}` });
   }
+  const turn = hiddenOut('robot') + hiddenIn('qa');
+  if (turn) out.push({ key: 'robot->qa', at: BRIDGE.poseAt(BRIDGE.length / 2), count: turn, label: `${turn} queued on the bridge between robot and qa` });
   return out;
 }

@@ -13,13 +13,19 @@ export interface View {
   vk: number;
   S: number;
   k: number;
-  off: V3;
+  /** Local figure point → world point (for depth keys). */
+  toW: (p: V3) => V3;
+  /** Figure drawn as its mirror image in local x (row 2, flowing −x). */
+  mirror: boolean;
 }
 
-export function makeView(C: Cam, P: Proj, off: V3 = [0, 0, 0]): View {
+const same = (p: V3) => p;
+
+export function makeView(C: Cam, P: Proj, toW: (p: V3) => V3 = same, mirror = false): View {
   const vs = Math.sin(C.az),
     vc = Math.cos(C.az);
-  return { P, front: (q) => q.nu * vs + q.nv * vc >= -1e-6, vs, vc, vk: C.k / Math.sqrt(1 - C.k * C.k), S: C.S, k: C.k, off };
+  const m = mirror ? -1 : 1;
+  return { P, front: (q) => m * q.nu * vs + q.nv * vc >= -1e-6, vs: m * vs, vc, vk: C.k / Math.sqrt(1 - C.k * C.k), S: C.S, k: C.k, toW, mirror };
 }
 
 /** Painter depth for the az -45 camera: nearer is larger (toward +y and -x), higher wins ties. */
@@ -76,7 +82,8 @@ export class Builder {
 
   /** Parts that products pass behind; `at` is the part's local depth anchor. */
   front(name: string, at: V3, fn: () => void, bias = 0) {
-    const g: FrontGroup = { name, key: depthKey(at[0] + this.v.off[0], at[1] + this.v.off[1], at[2]) + bias, shapes: [] };
+    const w = this.v.toW(at);
+    const g: FrontGroup = { name, key: depthKey(w[0], w[1], w[2]) + bias, shapes: [] };
     const prev = this.sink;
     this.sink = g.shapes;
     fn();
@@ -84,9 +91,14 @@ export class Builder {
     if (g.shapes.length) this.fronts.push(g);
   }
 
+  /** The highlighted part's own paths carry `part`, so the scene can accent the real geometry. */
+  private partCls(comp: string | undefined) {
+    return comp && this.hiComp && comp === this.hiComp ? ' part' : '';
+  }
+
   cls(comp: string | undefined, restHi: boolean) {
     const hi = comp && this.hiComp ? comp === this.hiComp : restHi && !this.hiComp;
-    return (hi ? 'sil hi' : 'sil') + machCls(comp);
+    return (hi ? 'sil hi' : 'sil') + machCls(comp) + this.partCls(comp);
   }
 
   solidRings(ring: Sample[], inner: Sample[] | null, z0: number, z1: number, comp?: string, restHi = false) {
@@ -96,7 +108,7 @@ export class Builder {
     this.sink.push({ t: 'path', d: poly(h), cls: this.cls(comp, restHi), comp });
     if (inner) {
       const cr = open(ringAt(P, run(inner, front), z1));
-      if (cr) this.sink.push({ t: 'path', d: cr, cls: 'nf lo' + machCls(comp) });
+      if (cr) this.sink.push({ t: 'path', d: cr, cls: 'nf lo' + machCls(comp) + this.partCls(comp) });
     }
   }
 
@@ -110,7 +122,7 @@ export class Builder {
     const h = hull(silPts);
     this.track(h, comp);
     this.sink.push({ t: 'path', d: poly(h), cls: this.cls(comp, restHi), comp });
-    if (creasePts && creasePts.length > 1) this.sink.push({ t: 'path', d: open(creasePts), cls: 'nf lo' + machCls(comp) });
+    if (creasePts && creasePts.length > 1) this.sink.push({ t: 'path', d: open(creasePts), cls: 'nf lo' + machCls(comp) + this.partCls(comp) });
   }
 
   line(d: string, cls = 'nf lo') {

@@ -42,7 +42,11 @@ export function CanvasRegion() {
 
   return (
     <main ref={ref} className="ws-canvas" aria-label="Production canvas">
-      <Scene selected={w.station} selectedComp={w.comp} onSelect={(id) => workspace.select(id)} onSelectComp={(c) => w.station && workspace.selectComponent(w.station, c)} />
+      <Scene selected={w.station} selectedComp={w.comp} onSelect={(id) => workspace.select(id)} onSelectComp={(c, st) => {
+          const id = st ?? w.station;
+          if (id) workspace.selectComponent(id, c);
+        }}
+      />
       <div className="ov ov-top">
         <CriticalNotice s={s} />
         <LatestEvent s={s} />
