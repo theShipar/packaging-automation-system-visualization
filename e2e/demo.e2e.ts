@@ -198,6 +198,35 @@ test('G09 creator avatar sits at the foot of the rail and links to the portfolio
   await expect(me.locator('.tip')).toContainText('Created by TheShipar');
 });
 
+test('G10 rail tooltips open to the right of their icon, level with it', async ({ page }) => {
+  await open(page, '/production');
+  const rail = (await page.locator('.rail').boundingBox())!;
+  const btn = page.getByRole('button', { name: 'Assets' });
+  await btn.hover();
+  const tip = btn.locator('.tip');
+  await expect(tip).toHaveCSS('opacity', '1');
+  const b = (await btn.boundingBox())!;
+  const t = (await tip.boundingBox())!;
+  expect(t.x).toBeGreaterThanOrEqual(rail.x + rail.width);
+  expect(Math.abs(t.y + t.height / 2 - (b.y + b.height / 2))).toBeLessThan(2);
+});
+
+test('G11 Restore scenario sits in the mode bar beside the layer and asks before reloading', async ({ page }) => {
+  await open(page, '/production');
+  await page.evaluate(() => (window as unknown as { lfStore: { fastForward(s: number): void } }).lfStore.fastForward(120));
+  const bar = page.locator('.mode-bar');
+  const restore = bar.getByRole('button', { name: 'Restore scenario' });
+  const flow = (await bar.locator('.layer-btn').boundingBox())!;
+  const r = (await restore.boundingBox())!;
+  expect(r.x).toBeGreaterThan(flow.x + flow.width);
+  await restore.click();
+  const dialog = page.getByRole('dialog', { name: /Restore/ });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: 'Restore scenario' }).click();
+  await expect(dialog).toBeHidden();
+  expect((await snap(page)).t).toBe(0);
+});
+
 test('G06 record the guided tour as video (VIDEO=<dir> only)', async ({ browser }) => {
   const dir = process.env.VIDEO;
   test.skip(!dir, 'set VIDEO=<dir> to record');

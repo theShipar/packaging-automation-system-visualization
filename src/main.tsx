@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
 import { store } from './app/store';
 import { installTrace } from './features/follow-product/trace';
+import '@fontsource-variable/urbanist';
 import './styles.css';
 
 if (import.meta.env.DEV) installTrace(() => store.session, store);

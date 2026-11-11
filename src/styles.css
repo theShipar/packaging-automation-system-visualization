@@ -103,13 +103,23 @@ kbd { font: 600 11px var(--font-mono); padding: 2px 6px; border-radius: var(--lf
 .rail-btn:hover { background: var(--lf-surface-hover); color: var(--lf-ink); }
 .rail-btn.on { background: var(--lf-selected-fill); color: var(--lf-selected-strong); }
 .rail-btn.on::before { content: ''; position: absolute; left: -10px; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: var(--lf-selected); }
+/* Fixed with only `left` set: the grid's centring keeps the tip level with its button. */
 .tip {
-  position: fixed; margin-left: 52px; transform: translateY(-2px); padding: 6px 10px; border-radius: var(--lf-radius-xs);
-  background: var(--lf-ink); color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap; pointer-events: none;
-  opacity: 0; transition: opacity var(--lf-ui-fast); z-index: 80; display: flex; flex-direction: column; line-height: 16px;
+  position: fixed; left: calc(var(--lf-rail-width) + 10px); padding: 7px 11px; border-radius: var(--lf-radius-sm);
+  background: var(--lf-ink); color: #fff; font-size: 12.5px; font-weight: 650; white-space: nowrap; pointer-events: none;
+  box-shadow: var(--lf-shadow-pop); opacity: 0; transform: translateX(-4px); visibility: hidden;
+  transition: opacity var(--lf-ui-fast), transform var(--lf-ui-fast), visibility 0s linear var(--lf-ui-fast);
+  z-index: 80; display: flex; flex-direction: column; gap: 1px; line-height: 16px; text-align: left;
 }
-.tip small { font-weight: 450; opacity: 0.72; font-size: 11px; }
-.rail-btn:hover .tip, .rail-btn:focus-visible .tip { opacity: 1; transition-delay: 250ms; }
+.tip::before {
+  content: ''; position: absolute; left: -4px; top: 50%; width: 8px; height: 8px; margin-top: -4px;
+  background: inherit; border-radius: 1.5px; transform: rotate(45deg);
+}
+.tip small { font-weight: 500; opacity: 0.72; font-size: 11.5px; }
+.rail-btn:hover .tip, .rail-btn:focus-visible .tip {
+  opacity: 1; transform: none; visibility: visible;
+  transition: opacity var(--lf-ui-fast) 250ms, transform var(--lf-ui-fast) 250ms, visibility 0s linear 250ms;
+}
 .rail-sep { width: 22px; height: 1px; background: var(--lf-border); margin: 6px 0; flex: none; }
 .rail-fill { flex: 1; min-height: 8px; }
 .rail-me img {
@@ -118,6 +128,7 @@ kbd { font: 600 11px var(--font-mono); padding: 2px 6px; border-radius: var(--lf
 }
 .rail-me:hover img, .rail-me:focus-visible img { box-shadow: 0 0 0 2px var(--lf-surface), 0 0 0 3.5px var(--lf-selected); transform: scale(1.04); }
 .rail-me:hover .tip, .rail-me:focus-visible .tip { transition-delay: 80ms; }
+.restore-btn .ico { width: 15px; height: 15px; }
 
 /* tool drawer */
 .tool-drawer {
@@ -336,11 +347,11 @@ input[type='checkbox'] { accent-color: var(--lf-selected-strong); width: 15px; h
 .mode-seg button.on { background: var(--lf-selected-fill); color: var(--lf-selected-strong); box-shadow: none; }
 .mode-menu { display: none; }
 .mode-menu .btn { height: 34px; }
-.layer-btn {
+.layer-btn, .restore-btn {
   display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; border: 0; border-radius: var(--lf-radius-sm);
   background: transparent; color: var(--lf-ink-2); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
 }
-.layer-btn:hover, .layer-btn[aria-expanded='true'] { background: var(--lf-surface-hover); color: var(--lf-ink); }
+.layer-btn:hover, .layer-btn[aria-expanded='true'], .restore-btn:hover { background: var(--lf-surface-hover); color: var(--lf-ink); }
 .layer-btn.on { color: var(--lf-selected-strong); }
 .pop.pop-up { top: auto; bottom: calc(100% + 10px); }
 .layer-pop { width: 340px; }
@@ -349,7 +360,7 @@ input[type='checkbox'] { accent-color: var(--lf-selected-strong); width: 15px; h
 @container canvas (max-width: 1000px) {
   .mode-seg { display: none; }
   .mode-menu { display: block; }
-  .layer-btn span { display: none; }
+  .layer-btn span, .restore-btn span { display: none; }
 }
 
 /* keyboard machine navigator: invisible until focused */
@@ -374,7 +385,7 @@ input[type='checkbox'] { accent-color: var(--lf-selected-strong); width: 15px; h
 .seg button::after { content: ''; position: absolute; left: 0; right: 0; top: -7px; bottom: -7px; }
 @media (pointer: coarse) {
   .icon-btn, .cam-tools .icon-btn { width: 40px; height: 40px; }
-  .btn, .btn.sm, .tab, .menu-row, .mode-seg button, .layer-btn { min-height: 40px; }
+  .btn, .btn.sm, .tab, .menu-row, .mode-seg button, .layer-btn, .restore-btn { min-height: 40px; }
   .seg button { height: 34px; }
 }
 

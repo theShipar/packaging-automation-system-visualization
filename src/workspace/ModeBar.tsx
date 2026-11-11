@@ -8,7 +8,7 @@ import { isOpenFault } from '../domain/engine';
 import { formatClock, formatDuration, lineKpis, stationView } from '../domain/kpis';
 import type { FaultCode, Session } from '../domain/types';
 import { FaultCard } from '../features/Inspector';
-import { IcoClose, IcoLayers } from '../ui/Icons';
+import { IcoClose, IcoLayers, IcoReset } from '../ui/Icons';
 import { alertsOf, type Alert } from './alerts';
 import { ConfirmDialog, RestartDialog, RestoreScenarioDialog } from './RestartDialog';
 import { usePopover } from './usePopover';
@@ -69,7 +69,22 @@ export function ModeBar() {
       <ModeMenu mode={w.mode} />
       <span className="ct-sep" aria-hidden />
       <LayerPicker layer={w.layer} />
+      <span className="ct-sep" aria-hidden />
+      <RestoreButton />
     </div>
+  );
+}
+
+function RestoreButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button className="restore-btn" aria-label="Restore scenario" title="Reload the scenario from its start. Asks first." onClick={() => setOpen(true)}>
+        <IcoReset />
+        <span>Restore scenario</span>
+      </button>
+      {open && <RestoreScenarioDialog onClose={() => setOpen(false)} />}
+    </>
   );
 }
 
