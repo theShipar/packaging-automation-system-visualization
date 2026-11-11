@@ -175,6 +175,14 @@ export const IcoStep = () => (
     <path d="M5 5v14l9-7zM18 5v14" />
   </I>
 );
+export const IcoGrid = () => (
+  <I>
+    <rect x="4" y="4" width="6.5" height="6.5" rx="1.5" />
+    <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" />
+    <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" />
+    <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" />
+  </I>
+);
 export const IcoHelp = () => (
   <I>
     <circle cx="12" cy="12" r="9" />

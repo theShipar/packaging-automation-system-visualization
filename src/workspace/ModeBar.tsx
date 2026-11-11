@@ -12,6 +12,7 @@ import { IcoClose, IcoLayers, IcoReset } from '../ui/Icons';
 import { alertsOf, type Alert } from './alerts';
 import { ConfirmDialog, RestartDialog, RestoreScenarioDialog } from './RestartDialog';
 import { usePopover } from './usePopover';
+import { useSheet } from './useSheet';
 import { MODES, useWorkspace, workspace, type Layer, type Mode } from './workspaceStore';
 
 export const MODE_META: Record<Mode, { label: string; hint: string }> = {
@@ -149,20 +150,26 @@ function LayerPicker({ layer }: { layer: Layer }) {
 export function ModePanel({ s, panelRef }: { s: Session; panelRef: Ref<HTMLElement> }) {
   const w = useWorkspace();
   if (w.mode === 'explore') return null;
+  return <ModePanelBody s={s} panelRef={panelRef} mode={w.mode} />;
+}
+
+function ModePanelBody({ s, panelRef, mode }: { s: Session; panelRef: Ref<HTMLElement>; mode: Mode }) {
+  const sheet = useSheet(() => enterMode('explore'));
   return (
-    <section ref={panelRef} className="mode-panel" aria-label={`${MODE_META[w.mode].label} tools`}>
+    <section ref={panelRef} className="mode-panel" aria-label={`${MODE_META[mode].label} tools`} data-sheet-size={sheet.size}>
+      <button className="sheet-grab" {...sheet.grab} />
       <div className="mp-head">
         <div>
           <span className="eyebrow">Mode</span>
-          <h2>{MODE_META[w.mode].label}</h2>
+          <h2>{MODE_META[mode].label}</h2>
         </div>
         <button className="icon-btn sm" onClick={() => enterMode('explore')} aria-label="Close panel and return to Explore" title="Back to Explore (selection and camera stay)">
           <IcoClose />
         </button>
       </div>
-      {w.mode === 'operate' && <OperatePanel s={s} />}
-      {w.mode === 'diagnose' && <DiagnosePanel s={s} />}
-      {w.mode === 'experiment' && <ExperimentPanel s={s} />}
+      {mode === 'operate' && <OperatePanel s={s} />}
+      {mode === 'diagnose' && <DiagnosePanel s={s} />}
+      {mode === 'experiment' && <ExperimentPanel s={s} />}
     </section>
   );
 }

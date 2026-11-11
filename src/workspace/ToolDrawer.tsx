@@ -10,6 +10,7 @@ import { SettingsPage } from '../pages/Settings';
 import { ScenarioRunPage, SimulationPage } from '../pages/Simulation';
 import { IcoClose } from '../ui/Icons';
 import { DrawerTitle } from './drawerContext';
+import { useSheet } from './useSheet';
 import { toolLabel } from './WorkspaceRail';
 import { workspace, type Tool } from './workspaceStore';
 
@@ -47,8 +48,10 @@ export function ToolDrawer({ tool, item, width }: { tool: Tool; item: string | n
   };
   const move = (e: RPE<HTMLDivElement>) => drag.current && workspace.setDrawerWidth(drag.current.w + e.clientX - drag.current.x);
   const up = () => (drag.current = null);
+  const sheet = useSheet(() => workspace.openTool(null), 'full');
   return (
-    <section className="tool-drawer" style={{ width }} aria-label={label}>
+    <section className="tool-drawer" style={{ width }} aria-label={label} data-sheet-size={sheet.size}>
+      <button className="sheet-grab" {...sheet.grab} />
       <header className="td-head">
         <h2>{label}</h2>
         <span className="sim-pill sm">Simulated data</span>

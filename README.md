@@ -55,7 +55,7 @@ A fault, the queue it causes and its recovery all come from the same engine even
 - **Persistence and export:** IndexedDB snapshots and JSON/CSV exports.
 - **Guided demo:** a five-scene tour on a fixed seed (`?demo=1`) plus a presentation mode (`P` or `?present=1`). First-time visitors are offered the tour after 10 seconds of exploring; the offer is shown once and remembered.
 - **Accessibility:** WCAG AA text contrast (covered by a test), a keyboard Machines navigator, visible focus, focus return, dialog focus traps, 40 px pointer targets, reduced-motion support and touch pan/pinch/tap.
-- **Responsive:** overlay inspector at 1024 px and bottom sheets at 768 px and 390 px.
+- **Responsive:** overlay inspector at 1024 px and bottom sheets at 768 px. See [On phones](#on-phones) for the phone layout.
 
 ## Screenshots
 
@@ -70,6 +70,21 @@ A fault, the queue it causes and its recovery all come from the same engine even
 | Guided tour | Presentation mode |
 |---|---|
 | ![Guided tour](screenshots/v2/after/1600-demo-scene3.png) | ![Presentation mode](screenshots/v2/after/1600-presentation.png) |
+
+### On phones
+
+| Line | Machines | Inspector | More |
+|---|---|---|---|
+| ![Line on a phone](screenshots/v2/mobile/390-line.png) | ![Machines list](screenshots/v2/mobile/390-machines.png) | ![Inspector sheet](screenshots/v2/mobile/390-inspector.png) | ![More sheet](screenshots/v2/mobile/390-more.png) |
+
+At 600 px and below the app switches to a phone layout:
+
+- A bottom tab bar (Line, Machines, Events, Analytics, More) replaces the side rail.
+- **Machines** lists all six stations with their live status, so you can open one without aiming at a small figure.
+- The inspector, tool drawers and mode panels are bottom sheets: drag the handle up for full height, down to shrink or close, or tap it to toggle.
+- The top bar has two rows: status and actions, then the clock, speed and a large Start / Pause button.
+- Pinch to zoom; the camera controls keep Fit, Focus and Follow.
+- Form fields are 16 px so iOS doesn't zoom the page, the layout respects the iPhone safe areas, and desktop-only items (keyboard shortcuts, presentation mode) are hidden.
 
 A recording of the guided tour is in [`screenshots/v2/after/video/guided-tour-1600x900.webm`](screenshots/v2/after/video/guided-tour-1600x900.webm).
 
@@ -146,7 +161,7 @@ npx playwright test smoke camera scene inspector operation a11y closeup demo qa
 ```
 
 - **Unit and domain tests** (`tests/`): conservation of units, unique identities, capacities, zero-snap robot hand-off, reject routing, carton and case association, pause and speed determinism, a golden 15-minute baseline run, experiment replay, camera math, layout and colour contrast.
-- **End-to-end tests** (`e2e/`): camera, scene, inspector, operation modes, accessibility, close-ups, the guided demo and the QA matrix. Playwright starts its own server on port 5181.
+- **End-to-end tests** (`e2e/`): camera, scene, inspector, operation modes, accessibility, close-ups, the guided demo, the QA matrix and the phone layout (`mobile.e2e.ts`: tab bar, sheets and dragging, touch targets, landscape). Playwright starts its own server on port 5181.
 - **Gated runs** (skipped by default):
   - `SHOTS=<dir>` captures screenshots.
   - `VIDEO=<dir>` records the guided tour.
@@ -214,7 +229,7 @@ The app is a static single-page app deployed on Vercel. [`vercel.json`](vercel.j
 
 - Station tags clip at the canvas edge when you zoom in very close.
 - At 1280×800 the scene 5 comparison table needs a short scroll.
-- On phones (390 px) the 2× and 5× speeds are hidden from the toolbar.
+- On phones the 2× and 5× speeds are hidden from the toolbar, and wide tables (such as Events) scroll sideways.
 - Presentation mode doesn't use the Fullscreen API.
 - Performance has only been measured headless (about 60 fps, frame p95 ≤ 16.8 ms on an Apple M4 Pro); there's no real-device GPU profile yet.
 - The event log is append-only, so memory grows slowly over very long sessions.

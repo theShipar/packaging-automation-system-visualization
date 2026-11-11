@@ -23,10 +23,20 @@ const TOP_RESERVE = 56;
 const MIN_SAFE_H = 120;
 /** Panels that float over the canvas at narrow widths instead of taking a layout column. */
 const overlays = () =>
-  [...document.querySelectorAll<HTMLElement>('.insp-dock, .tool-drawer')].filter((o) => {
+  [...document.querySelectorAll<HTMLElement>('.insp-dock, .tool-drawer, .m-sheet')].filter((o) => {
     const p = getComputedStyle(o).position;
     return p === 'absolute' || p === 'fixed';
   });
+/** Resting box of a panel: sheets slide in with a transform, which must not shift the frame. */
+const restingRect = (o: HTMLElement) => {
+  const r = o.getBoundingClientRect();
+  const tf = getComputedStyle(o).transform;
+  const m = tf && tf !== 'none' ? new DOMMatrixReadOnly(tf) : null;
+  const dx = m?.m41 ?? 0, dy = m?.m42 ?? 0;
+  return { top: r.top - dy, left: r.left - dx, right: r.right - dx, width: r.width };
+};
+/** Fired by panels the canvas cannot observe through workspace state (phone sheets). */
+export const OVERLAYS_CHANGED = 'lf:overlays';
 
 /** The canvas owns the remaining space; overlays float over it and the camera frames around them. */
 export function CanvasRegion() {
@@ -47,7 +57,7 @@ export function CanvasRegion() {
       const box = el.getBoundingClientRect();
       let left = inset, right = W - inset, padR = 0, padB = 0;
       for (const o of overlays()) {
-        const r = o.getBoundingClientRect();
+        const r = restingRect(o);
         if (r.width >= box.width * 0.6) {
           if (r.top - box.top > TOP_RESERVE + MIN_SAFE_H) padB = Math.max(padB, box.bottom - r.top);
         }
@@ -78,8 +88,16 @@ export function CanvasRegion() {
     overlays().forEach((o) => ro.observe(o));
     const tour = el.querySelector<HTMLElement>('.tour-card');
     if (tour) ro.observe(tour);
+    const onOverlays = () => {
+      overlays().forEach((o) => ro.observe(o));
+      measure();
+    };
+    addEventListener(OVERLAYS_CHANGED, onOverlays);
     measure();
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      removeEventListener(OVERLAYS_CHANGED, onOverlays);
+    };
   }, [panel, w.inspectorOpen && w.station !== null, w.tool, touring]);
 
   return (
@@ -122,16 +140,16 @@ function CameraControls({ s }: { s: Session }) {
   const next = w.station ? nextUnitAt(s, w.station) : null;
   return (
     <div className="cam-tools" role="toolbar" aria-label="Camera">
-      <button className="icon-btn" onClick={() => camera.zoomBy(1 / 1.25)} aria-label="Zoom out" title="Zoom out ( − )">
+      <button className="icon-btn zoom-btn" onClick={() => camera.zoomBy(1 / 1.25)} aria-label="Zoom out" title="Zoom out ( − )">
         <IcoMinus />
       </button>
       <button className="zoom-pct num" onClick={() => camera.fit()} title="Zoom relative to Fit. Click to Fit the whole line">
         {Math.round(cam.zoomRatio() * 100)}%
       </button>
-      <button className="icon-btn" onClick={() => camera.zoomBy(1.25)} aria-label="Zoom in" title="Zoom in ( + )">
+      <button className="icon-btn zoom-btn" onClick={() => camera.zoomBy(1.25)} aria-label="Zoom in" title="Zoom in ( + )">
         <IcoPlus />
       </button>
-      <span className="ct-sep" aria-hidden />
+      <span className="ct-sep zoom-btn" aria-hidden />
       <button className={`icon-btn${cam.mode === 'overview' ? ' on' : ''}`} onClick={() => camera.fit()} aria-label="Fit whole line" title="Fit whole line ( F )">
         <IcoFit />
       </button>

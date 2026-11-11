@@ -269,14 +269,14 @@ function RunMenu({ s, onDialog, onHelp }: { s: Session; onDialog: (d: 'restart' 
               <small>Five short scenes on a fixed seed; also at ?demo=1</small>
             </span>
           </button>
-          <button role="menuitem" className="menu-row" onClick={pick(() => demo.setPresenting(!demo.get().presenting))}>
+          <button role="menuitem" className="menu-row wide-only" onClick={pick(() => demo.setPresenting(!demo.get().presenting))}>
             <IcoFit />
             <span>
               {demo.get().presenting ? 'Leave presentation' : 'Presentation mode'}
               <small>Hide secondary chrome; P toggles, Esc leaves</small>
             </span>
           </button>
-          <button role="menuitem" className="menu-row" onClick={pick(onHelp)}>
+          <button role="menuitem" className="menu-row keys-only" onClick={pick(onHelp)}>
             <IcoKeyboard />
             <span>
               Keyboard shortcuts

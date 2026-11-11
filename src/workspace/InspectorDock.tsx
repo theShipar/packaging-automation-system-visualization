@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, type PointerEvent as RPE } from 'react';
 import { measure } from '../app/perf';
 import type { StationId } from '../domain/types';
 import { Inspector } from '../features/Inspector';
+import { useSheet } from './useSheet';
 import { INSPECTOR_PRESETS, INSPECTOR_WIDTHS, snapWidth, workspace } from './workspaceStore';
 
 const step = (w: number, dir: 1 | -1) => {
@@ -30,8 +31,10 @@ export function InspectorDock({ id, width }: { id: StationId; width: number }) {
     drag.current = null;
     workspace.setInspectorWidth(snapWidth(workspace.get().inspectorWidth));
   };
+  const sheet = useSheet(() => workspace.closeInspector());
   return (
-    <aside className="insp-dock" style={{ width }} aria-label="Machine inspector">
+    <aside className="insp-dock" style={{ width }} aria-label="Machine inspector" data-sheet-size={sheet.size}>
+      <button className="sheet-grab" {...sheet.grab} />
       <div
         className="resize-x left"
         role="separator"

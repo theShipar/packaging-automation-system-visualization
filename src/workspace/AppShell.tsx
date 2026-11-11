@@ -7,6 +7,7 @@ import { STATION_IDS, type StationId } from '../domain/types';
 import { useReducedMotionSync } from '../vector/Scene';
 import { CanvasRegion } from './CanvasRegion';
 import { InspectorDock } from './InspectorDock';
+import { MobileNav } from './MobileNav';
 import { ShortcutsDialog } from './ShortcutsDialog';
 import { ToolDrawer } from './ToolDrawer';
 import { TopCommandBar } from './TopCommandBar';
@@ -110,6 +111,7 @@ export function AppShell() {
         <CanvasRegion />
         {w.inspectorOpen && w.station && <InspectorDock id={w.station} width={w.inspectorWidth} />}
       </div>
+      <MobileNav />
       <div className="toasts" aria-live="polite">
         {store.toasts.map((t) => (
           <div key={t.id} className={`toast ${t.tone}`}>
