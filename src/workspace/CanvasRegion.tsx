@@ -11,6 +11,7 @@ import { statusLabel } from '../ui/Status';
 import { IcoFit, IcoFocus, IcoFollow, IcoMinus, IcoPlus } from '../ui/Icons';
 import { Scene } from '../vector/Scene';
 import { TourCard } from '../demo/TourCard';
+import { TourPrompt } from '../demo/TourPrompt';
 import { useDemo } from '../demo/demo';
 import { ModeBar, ModePanel } from './ModeBar';
 import { StatusRail } from './StatusRail';
@@ -85,6 +86,7 @@ export function CanvasRegion() {
     <main ref={ref} className="ws-canvas" aria-label="Production canvas">
       <StationNav s={s} />
       <TourCard />
+      <TourPrompt />
       <Scene selected={w.station} selectedComp={w.comp} onSelect={(id) => workspace.select(id)} onSelectComp={(c, st) => {
           const id = st ?? w.station;
           if (id) workspace.selectComponent(id, c);

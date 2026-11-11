@@ -361,7 +361,7 @@ test('A02 status is carried by text, not colour alone; A09 simulation and virtua
   await expect(page.locator('.st-label.sel').first()).toContainText(/Running|Paused|Idle|Blocked|Starved|Faulted/);
   await expect(page.locator('.state-pill')).toHaveText(/Paused|Faulted|Running/);
   await expect(page.locator('.sim-pill')).toHaveText('Simulation');
-  await expect(page.locator('.rail-sim')).toBeVisible();
+  await expect(page.getByRole('link', { name: /Created by TheShipar/ })).toHaveAttribute('href', 'https://shipar.vercel.app/');
   await expect(page.locator('[data-test="clock"]')).toHaveAttribute('title', /Virtual simulation time/);
 });
 

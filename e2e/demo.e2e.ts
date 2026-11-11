@@ -157,6 +157,47 @@ test('G05 capture tour scenes and presentation (SHOTS only)', async ({ page }) =
   }
 });
 
+test('G07 the guided demo offer appears after a delay, starts the tour, and is not repeated', async ({ page }) => {
+  await open(page, '/production?tourprompt=400');
+  const offer = page.getByRole('dialog', { name: 'Need a guided demo? Start here.' });
+  await expect(offer).toBeVisible();
+  await offer.getByRole('button', { name: 'Start guided demo' }).click();
+  await expect(offer).toBeHidden();
+  await expect(card(page)).toContainText('Scene 1 of 5');
+  expect(await page.evaluate(() => localStorage.getItem('lf.tourPromptSeen'))).toBe('true');
+
+  await page.goto('/production');
+  await page.waitForSelector('svg.hl');
+  await page.waitForTimeout(600);
+  await expect(page.locator('.tour-prompt')).toHaveCount(0);
+});
+
+test('G08 the guided demo offer can be dismissed with Not now', async ({ page }) => {
+  await open(page, '/production?tourprompt=200');
+  const offer = page.locator('.tour-prompt');
+  await expect(offer).toBeVisible();
+  await offer.getByRole('button', { name: 'Not now' }).click();
+  await expect(offer).toHaveCount(0);
+  await expect(card(page)).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem('lf.tourPromptSeen'))).toBe('true');
+});
+
+test('G09 creator avatar sits at the foot of the rail and links to the portfolio', async ({ page }) => {
+  await open(page, '/production');
+  const me = page.getByRole('link', { name: /Created by TheShipar/ });
+  await expect(me).toHaveAttribute('href', 'https://shipar.vercel.app/');
+  await expect(me).toHaveAttribute('target', '_blank');
+  const img = me.locator('img');
+  expect(await img.evaluate((el) => getComputedStyle(el).borderRadius)).toBe('50%');
+  expect(await img.evaluate((el) => (el as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  const rail = (await page.locator('.rail').boundingBox())!;
+  const box = (await me.boundingBox())!;
+  expect(box.y + box.height).toBeGreaterThan(rail.y + rail.height - 60);
+  await me.hover();
+  await expect(me.locator('.tip')).toHaveCSS('opacity', '1');
+  await expect(me.locator('.tip')).toContainText('Created by TheShipar');
+});
+
 test('G06 record the guided tour as video (VIDEO=<dir> only)', async ({ browser }) => {
   const dir = process.env.VIDEO;
   test.skip(!dir, 'set VIDEO=<dir> to record');

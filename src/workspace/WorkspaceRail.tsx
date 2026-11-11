@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
 import { IcoAsset, IcoBatch, IcoChart, IcoCheck, IcoEvents, IcoGear, IcoLab, IcoLine, IcoReport, IcoWrench } from '../ui/Icons';
 import { useWorkspace, workspace, type Tool } from './workspaceStore';
+import avatar from '../assets/theshipar.jpg';
+
+const PORTFOLIO = 'https://shipar.vercel.app/';
 
 export const TOOLS: { id: Tool; label: string; icon: ReactNode; hint: string }[] = [
   { id: 'batches', label: 'Batches', icon: <IcoBatch />, hint: 'Live batch, reconciliation and history' },
@@ -37,9 +40,13 @@ export function WorkspaceRail() {
         </button>
       ))}
       <span className="rail-fill" />
-      <span className="rail-sim" title="Every number on screen comes from the offline simulation. No machine is connected.">
-        SIM
-      </span>
+      <a className="rail-btn rail-me" href={PORTFOLIO} target="_blank" rel="noopener noreferrer" aria-label="Created by TheShipar, open portfolio in a new tab">
+        <img src={avatar} alt="" width={32} height={32} decoding="async" />
+        <span className="tip" role="tooltip">
+          Created by TheShipar
+          <small>shipar.vercel.app ↗</small>
+        </span>
+      </a>
     </nav>
   );
 }

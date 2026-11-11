@@ -53,7 +53,7 @@ A fault, the queue it causes and its recovery all come from the same engine even
 - **Run control:** Reset view, Restore scenario and Restart run are separate actions, and you're asked to confirm before any run with progress is replaced.
 - **Tools:** batches, scenario lab, analytics, assets, events, maintenance, quality, reports and settings, all as docked drawers.
 - **Persistence and export:** IndexedDB snapshots and JSON/CSV exports.
-- **Guided demo:** a five-scene tour on a fixed seed (`?demo=1`) plus a presentation mode (`P` or `?present=1`).
+- **Guided demo:** a five-scene tour on a fixed seed (`?demo=1`) plus a presentation mode (`P` or `?present=1`). First-time visitors are offered the tour after 10 seconds of exploring; the offer is shown once and remembered.
 - **Accessibility:** WCAG AA text contrast (covered by a test), a keyboard Machines navigator, visible focus, focus return, dialog focus traps, 40 px pointer targets, reduced-motion support and touch pan/pinch/tap.
 - **Responsive:** overlay inspector at 1024 px and bottom sheets at 768 px and 390 px.
 
@@ -105,6 +105,7 @@ Then open [http://127.0.0.1:5180/production](http://127.0.0.1:5180/production).
 | `/production` | The main workspace |
 | `/production?demo=1` | The guided five-scene tour |
 | `/production?demo=1&present=1` | The tour in presentation mode |
+| `/production?tourprompt=<ms>` | Shows the guided demo offer after `<ms>` milliseconds, even if it was dismissed before (for testing) |
 | `/assets`, `/events`, `/simulation`, `/analytics`, `/maintenance`, `/quality`, `/reports`, `/settings`, `/production/batches` | The workspace with that tool drawer open |
 
 ### Keyboard shortcuts
@@ -221,4 +222,4 @@ The app is a static single-page app deployed on Vercel. [`vercel.json`](vercel.j
 
 - Machine figures are drawn in the style of, and on the engine of, [Hairline](https://github.com/lucasmarkes/hairline) by Lucas Markes (MIT).
 - Built with [React](https://react.dev), [Vite](https://vitejs.dev), [TypeScript](https://www.typescriptlang.org), [React Router](https://reactrouter.com), [Zod](https://zod.dev), [Vitest](https://vitest.dev) and [Playwright](https://playwright.dev).
-- Designed and built by NerdLab ([@theShipar](https://github.com/theShipar)).
+- Designed and built by TheShipar ([portfolio](https://shipar.vercel.app/), [@theShipar](https://github.com/theShipar)). The avatar at the foot of the left rail links to the portfolio.
