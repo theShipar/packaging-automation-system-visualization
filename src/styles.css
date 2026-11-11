@@ -632,6 +632,58 @@ details.more[open] summary::before { transform: rotate(45deg); }
 .tbl tr.click { cursor: pointer; }
 .tbl tr.click:hover td { background: var(--lf-surface-hover); }
 .tbl td.r, .tbl th.r { text-align: right; }
+.tbl td.wrap { min-width: 220px; }
+/* tables that overflow sideways fade at the edge that still has columns */
+.card.flush:has(> .tbl) {
+  background:
+    linear-gradient(to left, var(--lf-surface) 40%, transparent) right center / 32px 100% no-repeat local,
+    radial-gradient(farthest-side at 100% 50%, rgba(23, 35, 55, 0.14), transparent) right center / 12px 100% no-repeat scroll,
+    var(--lf-surface);
+}
+
+/* custom select: trigger matches inputs; the list floats in a portal */
+.select { position: relative; display: inline-flex; min-width: 0; vertical-align: middle; }
+.select-btn {
+  display: inline-flex; align-items: center; gap: 8px; width: 100%; min-width: 0; height: 32px; padding: 0 8px 0 11px;
+  border: 1px solid var(--lf-border-strong); border-radius: var(--lf-radius-sm); background: var(--lf-surface); color: var(--lf-ink);
+  font: inherit; font-size: 13px; font-weight: 500; text-align: left; cursor: pointer;
+  transition: border-color var(--lf-ui-fast), box-shadow var(--lf-ui-fast), background var(--lf-ui-fast);
+}
+.select-btn:hover { border-color: var(--lf-ink-4); }
+.select-btn:focus-visible, .select-btn[aria-expanded='true'] { outline: none; border-color: var(--lf-selected); box-shadow: 0 0 0 3px var(--lf-selected-ring); }
+.select-val { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.select-btn > .ico { flex: none; color: var(--lf-ink-3); transition: transform var(--lf-ui-standard) var(--lf-ease-out); }
+.select-btn[aria-expanded='true'] > .ico { transform: rotate(180deg); color: var(--lf-selected-strong); }
+.select-list {
+  position: fixed; z-index: 80; overflow-y: auto; overscroll-behavior: contain; padding: 4px; border-radius: var(--lf-radius-md);
+  background: var(--lf-surface); border: 1px solid var(--lf-border); box-shadow: var(--lf-shadow-pop); animation: pop-in var(--lf-ui-standard) var(--lf-ease-out);
+}
+.select-opt {
+  display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 6px 8px 6px 10px; border-radius: 7px; font-size: 13px; color: var(--lf-ink-2);
+  cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
+}
+.select-opt-main { flex: 1; min-width: 0; }
+.select-opt small { display: block; font-size: 11.5px; color: var(--lf-ink-3); font-family: var(--font-mono); margin-top: 1px; }
+.select-opt.active { background: var(--lf-surface-hover); color: var(--lf-ink); }
+.select-opt[aria-selected='true'] { color: var(--lf-selected-strong); font-weight: 600; }
+.select-opt[aria-selected='true'].active { background: var(--lf-selected-fill); }
+.select-check { flex: none; display: grid; color: var(--lf-selected-strong); visibility: hidden; }
+.select-opt[aria-selected='true'] .select-check { visibility: visible; }
+.filters .select { flex: 0 1 200px; }
+.insp-foot .select { flex: 1 1 180px; }
+@media (pointer: coarse) {
+  .select-opt { min-height: 44px; }
+}
+
+/* custom scrollbars: thin and quiet, firmer under the pointer */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--lf-border-strong); background-clip: padding-box; border: 3px solid transparent; border-radius: 10px; min-height: 36px; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--lf-ink-4); border-width: 2px; }
+::-webkit-scrollbar-thumb:active { background-color: var(--lf-ink-3); }
+@supports not selector(::-webkit-scrollbar) {
+  * { scrollbar-width: thin; scrollbar-color: var(--lf-border-strong) transparent; }
+}
 .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .filters input[type='text'], .filters input:not([type]) { min-width: 0; flex: 1 1 160px; }
 .empty { padding: 22px; text-align: center; color: var(--lf-ink-3); }
@@ -1068,6 +1120,21 @@ button, a, summary, label { touch-action: manipulation; }
   .presenting .m-tabs { display: none; }
 
   html, body { overscroll-behavior: none; }
+
+  /* tables: single-line rows, pinned first column, the sheet does the vertical scrolling */
+  .scroll { max-height: none; }
+  .tbl { font-size: 13.5px; }
+  .tbl th, .tbl td { padding: 11px 12px; white-space: nowrap; vertical-align: middle; }
+  .tbl td.wrap { white-space: normal; min-width: 240px; }
+  .tbl td .mono.tert { display: block; margin-top: 2px; }
+  .tbl th:first-child, .tbl td:first-child { position: sticky; left: 0; z-index: 1; background: var(--lf-surface); box-shadow: inset -1px 0 0 var(--lf-border); }
+  .tbl thead th:first-child { z-index: 2; }
+  .tbl tr.click:active td { background: var(--lf-selected-fill); }
+  .filters { gap: 8px; }
+  .filters input[type='text'], .filters input:not([type]) { flex: 1 1 100%; height: 40px; }
+  .filters .select { flex: 1 1 0; }
+  .select-btn { height: 40px; font-size: 15px; border-radius: 10px; }
+  .select-opt { font-size: 15px; }
 
   /* 16 px keeps iOS from zooming the page when a field takes focus */
   input:not([type='checkbox']):not([type='radio']):not([type='range']), select, textarea { font-size: 16px; }

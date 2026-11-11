@@ -6,10 +6,13 @@ import { SKUS, buildHistory } from '../domain/history';
 import { defectPareto, formatClock, lineKpis, unitCounts } from '../domain/kpis';
 import type { Session } from '../domain/types';
 import { Kpi, PageHead, fmtDate, pct } from '../ui/Page';
+import { Select, type SelectOption } from '../ui/Select';
 import { ToolLink } from '../workspace/links';
 
 const skuName = (id: string) => SKUS.find((s) => s.id === id)?.name ?? id;
 const STATUS_TONE: Record<string, string> = { completed: 'good', partial: 'warn', cancelled: 'crit', planned: '', inProgress: 'blue', released: 'blue' };
+const STATUS_LABEL: Record<string, string> = { inProgress: 'In progress', released: 'Released', completed: 'Completed', partial: 'Partial', planned: 'Planned', cancelled: 'Cancelled' };
+const STATUS_FILTER: SelectOption<string>[] = [{ value: 'all', label: 'All statuses' }, ...Object.entries(STATUS_LABEL).map(([value, label]) => ({ value, label }))];
 
 export function BatchesPage() {
   const s = useUi();
@@ -42,11 +45,7 @@ export function BatchesPage() {
       <PageHead crumbs="Plant A / Line 01" title="Batches" sub={`${h.batches.length + 1} batches · history is a synthetic fixture (seed ${h.seed}); ${s.batch.id} is the live simulated run.`} />
       <div className="filters">
         <input placeholder="Search batch or SKU" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search batches" />
-        <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter by status">
-          {['all', 'inProgress', 'released', 'completed', 'partial', 'planned', 'cancelled'].map((x) => (
-            <option key={x}>{x}</option>
-          ))}
-        </select>
+        <Select value={status} onChange={setStatus} aria-label="Filter by status" options={STATUS_FILTER} />
         <span className="muted">{rows.length} shown</span>
       </div>
       <div className="card flush scroll">
@@ -74,7 +73,7 @@ export function BatchesPage() {
                   {skuName(r.sku)} <span className="tert mono">{r.sku}</span>
                 </td>
                 <td>
-                  <span className={`tag ${STATUS_TONE[r.status] ?? ''}`}>{r.status}</span>
+                  <span className={`tag ${STATUS_TONE[r.status] ?? ''}`}>{STATUS_LABEL[r.status] ?? r.status}</span>
                 </td>
                 <td className="muted">{r.start ?? '—'}</td>
                 <td className="r num">{r.planned.toLocaleString()}</td>

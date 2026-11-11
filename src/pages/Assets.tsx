@@ -154,7 +154,7 @@ export function AssetDetailPage({ id }: { id: string }) {
                 {wos.map((w) => (
                   <tr key={w.id}>
                     <td className="mono">{w.id}</td>
-                    <td>{w.description}</td>
+                    <td className="wrap">{w.description}</td>
                     <td>{w.status}</td>
                     <td className="muted">{fmtDate(w.created)}</td>
                   </tr>

@@ -5,6 +5,7 @@ import { isOpenFault, stagingUnits } from '../domain/engine';
 import { formatClock, stationView } from '../domain/kpis';
 import type { Fault, FaultCode, MaterialId, Session, StationConfig, StationId } from '../domain/types';
 import { IcoClose } from '../ui/Icons';
+import { Select } from '../ui/Select';
 import { nextUnitAt } from './follow-product/FollowCard';
 import { StatusDot, StatusPill, statusLabel } from '../ui/Status';
 import { focusComponent, hasGeometry } from '../camera/commands';
@@ -499,13 +500,7 @@ function Footer({ s, id }: { s: Session; id: StationId }) {
   useEffect(() => setCode(codes[0].code), [id]);
   return (
     <div className="insp-foot">
-      <select value={code} onChange={(e) => setCode(e.target.value as FaultCode)} aria-label="Fault to simulate">
-        {codes.map((f) => (
-          <option key={f.code} value={f.code}>
-            {f.code}
-          </option>
-        ))}
-      </select>
+      <Select value={code} onChange={setCode} aria-label="Fault to simulate" className="insp-fault" options={codes.map((f) => ({ value: f.code, label: f.title, hint: f.code }))} />
       <button className="btn sm amber" disabled={!can('INJECT_FAULT') || s.status === 'completed'} onClick={() => store.command({ kind: 'INJECT_FAULT', code })} title="Simulation only — injects a synthetic fault">
         Simulate issue
       </button>

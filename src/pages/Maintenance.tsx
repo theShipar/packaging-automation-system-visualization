@@ -90,7 +90,7 @@ export function MaintenancePage() {
                 <td>{w.priority}</td>
                 <td>{w.status}</td>
                 <td className="muted num">virtual {formatClock(w.createdAt)}</td>
-                <td>{w.description}</td>
+                <td className="wrap">{w.description}</td>
               </tr>
             ))}
             {[...h.workOrders].reverse().map((w) => (
@@ -100,7 +100,7 @@ export function MaintenancePage() {
                 <td>{w.priority}</td>
                 <td>{w.status}</td>
                 <td className="muted">{fmtDate(w.created)}</td>
-                <td>{w.description}</td>
+                <td className="wrap">{w.description}</td>
               </tr>
             ))}
           </tbody>

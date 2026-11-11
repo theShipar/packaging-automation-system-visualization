@@ -165,6 +165,16 @@ export const IcoExpand = () => (
     <path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" />
   </I>
 );
+export const IcoTick = () => (
+  <I>
+    <path d="m5 12.5 4.5 4.5L19 7.5" />
+  </I>
+);
+export const IcoChevronDown = () => (
+  <I>
+    <path d="m6.5 9.5 5.5 5.5 5.5-5.5" />
+  </I>
+);
 export const IcoChevronLeft = () => (
   <I>
     <path d="M15 5l-7 7 7 7" />

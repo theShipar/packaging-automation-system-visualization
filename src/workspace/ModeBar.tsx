@@ -9,6 +9,7 @@ import { formatClock, formatDuration, lineKpis, stationView } from '../domain/kp
 import type { FaultCode, Session } from '../domain/types';
 import { FaultCard } from '../features/Inspector';
 import { IcoClose, IcoLayers, IcoReset } from '../ui/Icons';
+import { Select } from '../ui/Select';
 import { alertsOf, type Alert } from './alerts';
 import { ConfirmDialog, RestartDialog, RestoreScenarioDialog } from './RestartDialog';
 import { usePopover } from './usePopover';
@@ -346,13 +347,7 @@ function ExperimentPanel({ s }: { s: Session }) {
       )}
       <div className="mp-sec">Inject a fault</div>
       <div className="row">
-        <select value={code} onChange={(e) => setCode(e.target.value as FaultCode)} aria-label="Fault to inject" style={{ flex: 1, minWidth: 0 }}>
-          {FAULTS.map((f) => (
-            <option key={f.code} value={f.code}>
-              {STATION_META[f.station].short} · {f.title}
-            </option>
-          ))}
-        </select>
+        <Select value={code} onChange={setCode} aria-label="Fault to inject" style={{ flex: 1, minWidth: 0 }} options={FAULTS.map((f) => ({ value: f.code, label: `${STATION_META[f.station].short} · ${f.title}`, hint: f.code }))} />
         <button className="btn sm amber" disabled={!can('INJECT_FAULT') || s.status === 'completed'} title={!can('INJECT_FAULT') ? 'Your role cannot inject faults (Settings)' : s.status === 'completed' ? 'Batch completed' : 'Simulation only — injects a synthetic fault'} onClick={() => store.command({ kind: 'INJECT_FAULT', code })}>
           Inject
         </button>

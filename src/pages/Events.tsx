@@ -5,6 +5,7 @@ import { COMPONENTS, STATIONS, STATION_META } from '../domain/config';
 import { buildHistory } from '../domain/history';
 import { formatClock } from '../domain/kpis';
 import { IcoDownload } from '../ui/Icons';
+import { Select, type SelectOption } from '../ui/Select';
 import { PageHead, fmtDate } from '../ui/Page';
 import { StationLink } from '../workspace/links';
 import { useWorkspace, workspace } from '../workspace/workspaceStore';
@@ -25,6 +26,14 @@ interface Row {
   message: string;
   live: boolean;
 }
+
+const STATION_FILTER: SelectOption<string>[] = [{ value: 'all', label: 'All stations' }, ...STATIONS.map((m) => ({ value: m.id, label: m.name, hint: `Station ${m.no}` }))];
+const SEV_FILTER: SelectOption<string>[] = [
+  { value: 'all', label: 'All severities' },
+  { value: 'info', label: 'Info' },
+  { value: 'warning', label: 'Warning' },
+  { value: 'critical', label: 'Critical' },
+];
 
 export function EventsPage() {
   const s = useUi();
@@ -67,23 +76,13 @@ export function EventsPage() {
       />
       <div className="filters">
         <input placeholder="Search type, message, batch" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search events" />
-        <select
+        <Select
           value={station}
-          onChange={(e) => workspace.select(e.target.value === 'all' ? null : (e.target.value as StationId), { inspector: workspace.get().inspectorOpen })}
+          onChange={(v) => workspace.select(v === 'all' ? null : (v as StationId), { inspector: workspace.get().inspectorOpen })}
           aria-label="Station (follows the canvas selection)"
-        >
-          <option value="all">All stations</option>
-          {STATIONS.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </select>
-        <select value={sev} onChange={(e) => setSev(e.target.value)} aria-label="Severity">
-          {['all', 'info', 'warning', 'critical'].map((x) => (
-            <option key={x}>{x}</option>
-          ))}
-        </select>
+          options={STATION_FILTER}
+        />
+        <Select value={sev} onChange={setSev} aria-label="Severity" options={SEV_FILTER} />
         <label className="row">
           <input type="checkbox" checked={noise} onChange={(e) => setNoise(e.target.checked)} /> Cycle events
         </label>
@@ -141,7 +140,7 @@ export function EventsPage() {
                   )}
                 </td>
                 <td className="mono">{r.batch}</td>
-                <td>{r.message}</td>
+                <td className="wrap">{r.message}</td>
               </tr>
             ))}
           </tbody>

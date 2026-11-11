@@ -178,7 +178,9 @@ test('E01 Experiment: baseline, change, compare at the same virtual time, restor
   await mode(page, 'Experiment');
   await panel(page).getByRole('button', { name: /Capture baseline/ }).click();
   await expect(panel(page)).toContainText('no changes yet');
-  await panel(page).getByLabel('Fault to inject').selectOption('PKG_JAM');
+  await panel(page).getByRole('combobox', { name: 'Fault to inject' }).click();
+  await page.getByRole('listbox', { name: 'Fault to inject' }).getByRole('option', { name: /PKG_JAM/ }).click();
+  await expect(panel(page).getByRole('combobox', { name: 'Fault to inject' })).toContainText('Packaging');
   await panel(page).getByRole('button', { name: 'Inject' }).click();
   await expect(panel(page)).toContainText('1 change since');
   await expect(panel(page).getByRole('button', { name: /Compare at/ })).toBeDisabled();

@@ -55,6 +55,7 @@ A fault, the queue it causes and its recovery all come from the same engine even
 - **Persistence and export:** IndexedDB snapshots and JSON/CSV exports.
 - **Guided demo:** a five-scene tour on a fixed seed (`?demo=1`) plus a presentation mode (`P` or `?present=1`). First-time visitors are offered the tour after 10 seconds of exploring; the offer is shown once and remembered.
 - **Accessibility:** WCAG AA text contrast (covered by a test), a keyboard Machines navigator, visible focus, focus return, dialog focus traps, 40 px pointer targets, reduced-motion support and touch pan/pinch/tap.
+- **One design system for controls:** every dropdown is a custom keyboard-accessible combobox (arrows, Home/End, type-ahead, Esc), and scrollbars are thin and themed.
 - **Responsive:** overlay inspector at 1024 px and bottom sheets at 768 px. See [On phones](#on-phones) for the phone layout.
 
 ## Screenshots
@@ -84,6 +85,7 @@ At 600 px and below the app switches to a phone layout:
 - **Sheets.** The inspector, tool drawers and mode panels are bottom sheets: drag the handle up for full height, down to shrink or close, or tap it to toggle. The inspector has previous and next machine buttons, and you can swipe sideways on that row. Tool details have a back chevron in the header.
 - **Canvas controls.** Fit, Focus and Follow stack vertically on the right edge. A separate eye button above them hides or shows the scene labels (queue counts, layer readouts and flow marks) when the map gets busy. The batch status sits right-aligned beneath them. Pinch to zoom.
 - **Top bar.** It has two rows. The first holds status, search, alerts, a settings gear (the run menu) and the creator avatar, which opens links to the portfolio, other work and this repository. The second holds the clock, the 1×, 2×, 5× and 10× speeds, and a large Start / Pause button.
+- **Tables** keep each row on one line (the SKU code sits under its name) with the first column pinned while you swipe sideways. A fade marks the side with more columns, and the sheet handles vertical scrolling, so tables don't scroll inside a scroll.
 - Form fields are 16 px so iOS doesn't zoom the page, the layout respects the iPhone safe areas, and desktop-only items (keyboard shortcuts, presentation mode) are hidden.
 
 A recording of the guided tour is in [`screenshots/v2/after/video/guided-tour-1600x900.webm`](screenshots/v2/after/video/guided-tour-1600x900.webm).
@@ -229,7 +231,7 @@ The app is a static single-page app deployed on Vercel. [`vercel.json`](vercel.j
 
 - Station tags clip at the canvas edge when you zoom in very close.
 - At 1280×800 the scene 5 comparison table needs a short scroll.
-- On phones the 20× speed is hidden from the toolbar, and wide tables (such as Events) scroll sideways.
+- On phones the 20× speed is hidden from the toolbar, and wide tables (such as Events) scroll sideways behind a pinned first column.
 - Presentation mode doesn't use the Fullscreen API.
 - Performance has only been measured headless (about 60 fps, frame p95 ≤ 16.8 ms on an Apple M4 Pro); there's no real-device GPU profile yet.
 - The event log is append-only, so memory grows slowly over very long sessions.
