@@ -1,7 +1,10 @@
 import { useLayoutEffect, useRef, type PointerEvent as RPE } from 'react';
 import { measure } from '../app/perf';
+import { focusStation } from '../camera/commands';
+import { STATIONS } from '../domain/config';
 import type { StationId } from '../domain/types';
 import { Inspector } from '../features/Inspector';
+import { IcoChevronLeft } from '../ui/Icons';
 import { useSheet } from './useSheet';
 import { INSPECTOR_PRESETS, INSPECTOR_WIDTHS, snapWidth, workspace } from './workspaceStore';
 
@@ -57,7 +60,56 @@ export function InspectorDock({ id, width }: { id: StationId; width: number }) {
           workspace.setInspectorWidth(next);
         }}
       />
+      <StationStepper id={id} />
       <Inspector id={id} />
     </aside>
+  );
+}
+
+const SWIPE_PX = 48;
+
+function goTo(id: StationId) {
+  workspace.select(id, { inspector: true });
+  focusStation(id);
+}
+
+/** Sheet-only stepper: walk the line machine by machine with arrows or a horizontal swipe, without closing the sheet. */
+function StationStepper({ id }: { id: StationId }) {
+  const i = STATIONS.findIndex((m) => m.id === id);
+  const prev = STATIONS[i - 1];
+  const next = STATIONS[i + 1];
+  const start = useRef<{ x: number; y: number } | null>(null);
+  return (
+    <nav
+      className="insp-nav"
+      aria-label="Step through machines"
+      onPointerDown={(e) => (start.current = { x: e.clientX, y: e.clientY })}
+      onPointerUp={(e) => {
+        const s0 = start.current;
+        start.current = null;
+        if (!s0) return;
+        const dx = e.clientX - s0.x;
+        if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) < Math.abs(e.clientY - s0.y) * 1.5) return;
+        const to = dx < 0 ? next : prev;
+        if (to) goTo(to.id);
+      }}
+    >
+      <button className="insp-step" disabled={!prev} onClick={() => prev && goTo(prev.id)} aria-label={prev ? `Previous machine: ${prev.name}` : 'No previous machine'}>
+        <IcoChevronLeft />
+        <span>{prev?.short ?? 'Start'}</span>
+      </button>
+      <span className="insp-dots" aria-live="polite">
+        {STATIONS.map((m) => (
+          <i key={m.id} className={m.id === id ? 'on' : ''} />
+        ))}
+        <span className="sr-only">
+          Machine {i + 1} of {STATIONS.length}
+        </span>
+      </span>
+      <button className="insp-step next" disabled={!next} onClick={() => next && goTo(next.id)} aria-label={next ? `Next machine: ${next.name}` : 'No next machine'}>
+        <span>{next?.short ?? 'End'}</span>
+        <IcoChevronLeft />
+      </button>
+    </nav>
   );
 }

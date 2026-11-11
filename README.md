@@ -73,17 +73,17 @@ A fault, the queue it causes and its recovery all come from the same engine even
 
 ### On phones
 
-| Line | Machines | Inspector | More |
-|---|---|---|---|
-| ![Line on a phone](screenshots/v2/mobile/390-line.png) | ![Machines list](screenshots/v2/mobile/390-machines.png) | ![Inspector sheet](screenshots/v2/mobile/390-inspector.png) | ![More sheet](screenshots/v2/mobile/390-more.png) |
+| Line | Machines | Inspector | Creator | More |
+|---|---|---|---|---|
+| ![Line on a phone](screenshots/v2/mobile/390-line.png) | ![Machines list](screenshots/v2/mobile/390-machines.png) | ![Inspector sheet](screenshots/v2/mobile/390-inspector.png) | ![Creator card](screenshots/v2/mobile/390-creator.png) | ![More sheet](screenshots/v2/mobile/390-more.png) |
 
 At 600 px and below the app switches to a phone layout:
 
-- A bottom tab bar (Line, Machines, Events, Analytics, More) replaces the side rail.
+- **Floating two-tier dock.** The top tier holds the four modes as one segmented control, plus the data layer and Restore scenario. The bottom tier holds the sections (Line, Machines, Events, Analytics, More) with a sliding indicator. The mode tier folds away while a sheet is open.
 - **Machines** lists all six stations with their live status, so you can open one without aiming at a small figure.
-- The inspector, tool drawers and mode panels are bottom sheets: drag the handle up for full height, down to shrink or close, or tap it to toggle.
-- The top bar has two rows: status and actions, then the clock, speed and a large Start / Pause button.
-- Pinch to zoom; the camera controls keep Fit, Focus and Follow.
+- **Sheets.** The inspector, tool drawers and mode panels are bottom sheets: drag the handle up for full height, down to shrink or close, or tap it to toggle. The inspector has previous and next machine buttons, and you can swipe sideways on that row. Tool details have a back chevron in the header.
+- **Canvas controls.** Fit, Focus and Follow stack vertically on the right edge. A separate eye button above them hides or shows the scene labels (queue counts, layer readouts and flow marks) when the map gets busy. The batch status sits right-aligned beneath them. Pinch to zoom.
+- **Top bar.** It has two rows. The first holds status, search, alerts, a settings gear (the run menu) and the creator avatar, which opens links to the portfolio, other work and this repository. The second holds the clock, the 1×, 2×, 5× and 10× speeds, and a large Start / Pause button.
 - Form fields are 16 px so iOS doesn't zoom the page, the layout respects the iPhone safe areas, and desktop-only items (keyboard shortcuts, presentation mode) are hidden.
 
 A recording of the guided tour is in [`screenshots/v2/after/video/guided-tour-1600x900.webm`](screenshots/v2/after/video/guided-tour-1600x900.webm).
@@ -229,7 +229,7 @@ The app is a static single-page app deployed on Vercel. [`vercel.json`](vercel.j
 
 - Station tags clip at the canvas edge when you zoom in very close.
 - At 1280×800 the scene 5 comparison table needs a short scroll.
-- On phones the 2× and 5× speeds are hidden from the toolbar, and wide tables (such as Events) scroll sideways.
+- On phones the 20× speed is hidden from the toolbar, and wide tables (such as Events) scroll sideways.
 - Presentation mode doesn't use the Fullscreen API.
 - Performance has only been measured headless (about 60 fps, frame p95 ≤ 16.8 ms on an Apple M4 Pro); there's no real-device GPU profile yet.
 - The event log is append-only, so memory grows slowly over very long sessions.

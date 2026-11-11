@@ -183,6 +183,34 @@ export const IcoGrid = () => (
     <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" />
   </I>
 );
+export const IcoEye = () => (
+  <I>
+    <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+    <circle cx="12" cy="12" r="2.8" />
+  </I>
+);
+export const IcoEyeOff = () => (
+  <I>
+    <path d="M9.9 5.8A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-2.6 3.4M6.3 7.2C3.9 8.9 2.5 12 2.5 12S6 18.5 12 18.5c1.6 0 3-.4 4.2-1M9.9 9.9a2.8 2.8 0 0 0 4.2 4.2M3.5 3.5l17 17" />
+  </I>
+);
+export const IcoExternal = () => (
+  <I>
+    <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+  </I>
+);
+export const IcoCode = () => (
+  <I>
+    <path d="M8.5 8 4.5 12l4 4M15.5 8l4 4-4 4M13.5 5.5l-3 13" />
+  </I>
+);
+export const IcoKebab = () => (
+  <I>
+    <circle cx="12" cy="5.5" r="1.2" fill="currentColor" />
+    <circle cx="12" cy="12" r="1.2" fill="currentColor" />
+    <circle cx="12" cy="18.5" r="1.2" fill="currentColor" />
+  </I>
+);
 export const IcoHelp = () => (
   <I>
     <circle cx="12" cy="12" r="9" />

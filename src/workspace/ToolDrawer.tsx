@@ -8,7 +8,7 @@ import { QualityPage } from '../pages/Quality';
 import { ReportsPage } from '../pages/Reports';
 import { SettingsPage } from '../pages/Settings';
 import { ScenarioRunPage, SimulationPage } from '../pages/Simulation';
-import { IcoClose } from '../ui/Icons';
+import { IcoChevronLeft, IcoClose } from '../ui/Icons';
 import { DrawerTitle } from './drawerContext';
 import { useSheet } from './useSheet';
 import { toolLabel } from './WorkspaceRail';
@@ -53,6 +53,11 @@ export function ToolDrawer({ tool, item, width }: { tool: Tool; item: string | n
     <section className="tool-drawer" style={{ width }} aria-label={label} data-sheet-size={sheet.size}>
       <button className="sheet-grab" {...sheet.grab} />
       <header className="td-head">
+        {item && (
+          <button className="icon-btn sm td-back" onClick={() => workspace.openTool(tool, null)} aria-label={`Back to all ${label.toLowerCase()}`} title={`All ${label.toLowerCase()}`}>
+            <IcoChevronLeft />
+          </button>
+        )}
         <h2>{label}</h2>
         <span className="sim-pill sm">Simulated data</span>
         <span className="spacer" />

@@ -76,7 +76,7 @@ export function ModeBar() {
   );
 }
 
-function RestoreButton() {
+export function RestoreButton() {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -113,7 +113,7 @@ function ModeMenu({ mode }: { mode: Mode }) {
   );
 }
 
-function LayerPicker({ layer }: { layer: Layer }) {
+export function LayerPicker({ layer }: { layer: Layer }) {
   const { open, setOpen, ref } = usePopover();
   return (
     <div className="pop-wrap" ref={ref}>

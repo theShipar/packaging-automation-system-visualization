@@ -2,11 +2,12 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { store, useUi } from '../app/store';
 import { formatClock, lineKpis } from '../domain/kpis';
 import { SPEEDS, type Session } from '../domain/types';
-import { IcoBell, IcoFit, IcoKeyboard, IcoLab, IcoMore, IcoPause, IcoPlay, IcoReset, IcoSave, IcoSearch, IcoStep } from '../ui/Icons';
+import { IcoBell, IcoFit, IcoGear, IcoKeyboard, IcoLab, IcoMore, IcoPause, IcoPlay, IcoReset, IcoSave, IcoSearch, IcoStep } from '../ui/Icons';
 import { focusComponent, focusStation } from '../camera/commands';
 import { alertsOf, type Alert } from './alerts';
 import { RestartDialog, RestoreScenarioDialog } from './RestartDialog';
 import { camera } from '../camera/controller';
+import { CreatorBadge } from './CreatorBadge';
 import { usePopover } from './usePopover';
 import { workspace } from './workspaceStore';
 import { demo, useDemo } from '../demo/demo';
@@ -90,6 +91,7 @@ export function TopCommandBar({ onHelp }: { onHelp: () => void }) {
           </button>
         )}
         <RunMenu s={s} onDialog={setDialog} onHelp={onHelp} />
+        <CreatorBadge />
       </div>
       {dialog === 'restart' && <RestartDialog onClose={() => setDialog(null)} />}
       {dialog === 'restore' && <RestoreScenarioDialog onClose={() => setDialog(null)} />}
@@ -221,9 +223,14 @@ function RunMenu({ s, onDialog, onHelp }: { s: Session; onDialog: (d: 'restart' 
     fn();
   };
   return (
-    <div className="pop-wrap" ref={ref}>
+    <div className="pop-wrap run-menu" ref={ref}>
       <button className="icon-btn" onClick={() => setOpen(!open)} aria-expanded={open} aria-haspopup="menu" aria-label="Run menu" title="Run menu">
-        <IcoMore />
+        <span className="ico-wide">
+          <IcoMore />
+        </span>
+        <span className="ico-phone">
+          <IcoGear />
+        </span>
       </button>
       {open && (
         <div className="pop pop-right menu" role="menu">

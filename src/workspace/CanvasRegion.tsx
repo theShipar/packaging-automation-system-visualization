@@ -8,13 +8,14 @@ import { formatClock, stationView } from '../domain/kpis';
 import type { Session } from '../domain/types';
 import { nextUnitAt } from '../features/follow-product/FollowCard';
 import { statusLabel } from '../ui/Status';
-import { IcoFit, IcoFocus, IcoFollow, IcoMinus, IcoPlus } from '../ui/Icons';
+import { IcoEye, IcoEyeOff, IcoFit, IcoFocus, IcoFollow, IcoMinus, IcoPlus } from '../ui/Icons';
 import { Scene } from '../vector/Scene';
 import { TourCard } from '../demo/TourCard';
 import { TourPrompt } from '../demo/TourPrompt';
 import { useDemo } from '../demo/demo';
 import { ModeBar, ModePanel } from './ModeBar';
 import { StatusRail } from './StatusRail';
+import { usePhone } from './usePhone';
 import { useWorkspace, workspace } from './workspaceStore';
 
 const NOISE = new Set(['STATION_CYCLE_STARTED', 'STATION_CYCLE_COMPLETED', 'UNIT_RELEASED', 'MATERIAL_CONSUMED', 'QA_INSPECTION_PASSED', 'CASE_OPENED', 'TRANSFER_RESERVED', 'TRANSFER_STARTED', 'TRANSFER_COMPLETED']);
@@ -46,6 +47,7 @@ export function CanvasRegion() {
   const bottom = useRef<HTMLDivElement>(null);
   const [panel, setPanel] = useState<HTMLElement | null>(null);
   const touring = useDemo().step !== null;
+  const phone = usePhone();
 
   useLayoutEffect(() => {
     const el = ref.current, bot = bottom.current;
@@ -101,7 +103,7 @@ export function CanvasRegion() {
   }, [panel, w.inspectorOpen && w.station !== null, w.tool, touring]);
 
   return (
-    <main ref={ref} className="ws-canvas" aria-label="Production canvas">
+    <main ref={ref} className="ws-canvas" aria-label="Production canvas" data-labels={w.labels ? undefined : 'off'}>
       <StationNav s={s} />
       <TourCard />
       <TourPrompt />
@@ -121,11 +123,14 @@ export function CanvasRegion() {
       )}
       <ModePanel s={s} panelRef={setPanel} />
       <div className="ov ov-bottom" ref={bottom}>
-        <div className="ob-left">
-          <ModeBar />
-        </div>
+        <div className="ob-left">{!phone && <ModeBar />}</div>
         <StatusRail />
         <div className="ob-right">
+          <div className="labels-tools" role="toolbar" aria-label="Scene labels">
+            <button className={`icon-btn${w.labels ? '' : ' on'}`} onClick={() => workspace.toggleLabels()} aria-label={w.labels ? 'Hide labels' : 'Show labels'} title={w.labels ? 'Hide labels' : 'Show labels'}>
+              {w.labels ? <IcoEye /> : <IcoEyeOff />}
+            </button>
+          </div>
           <CameraControls s={s} />
         </div>
       </div>

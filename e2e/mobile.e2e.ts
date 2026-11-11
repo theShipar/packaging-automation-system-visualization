@@ -11,6 +11,7 @@ async function open(page: Page, url = '/production') {
 }
 const ws = (page: Page) => page.evaluate(() => (window as unknown as { lfWorkspace: { state(): { station: string | null; tool: string | null; inspectorOpen: boolean } } }).lfWorkspace.state());
 const tabs = (page: Page) => page.getByRole('navigation', { name: 'Sections' });
+const dockTop = async (page: Page) => (await page.locator('.m-dock').boundingBox())!.y;
 /** Sheets slide in; read their boxes once they rest. */
 const settle = (page: Page) => page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'));
 const noPageScroll = (page: Page) => page.evaluate(() => ({ x: document.documentElement.scrollWidth - innerWidth, y: document.documentElement.scrollHeight - innerHeight }));
@@ -25,7 +26,7 @@ async function drag(page: Page, sel: string, dy: number) {
   await page.waitForTimeout(320);
 }
 
-test('M01 phone: bottom tab bar replaces the rail; essentials visible; no page scroll', async ({ page }) => {
+test('M01 phone: a two-tier dock replaces the rail; essentials visible; no page scroll', async ({ page }) => {
   await open(page);
   await expect(page.locator('.rail')).toBeHidden();
   await expect(tabs(page)).toBeVisible();
@@ -36,10 +37,14 @@ test('M01 phone: bottom tab bar replaces the rail; essentials visible; no page s
   await expect(page.locator('.cam-tools')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Zoom in' })).toBeHidden();
   expect(await noPageScroll(page)).toEqual({ x: 0, y: 0 });
-  const bar = (await tabs(page).boundingBox())!;
-  expect(bar.y + bar.height).toBeCloseTo(844, 0);
+  const dock = (await page.locator('.m-dock').boundingBox())!;
+  expect(dock.y + dock.height).toBeCloseTo(844, 0);
+  const modes = page.locator('.m-dock').getByRole('radiogroup', { name: 'Mode' });
+  for (const name of ['Explore', 'Operate', 'Diagnose', 'Experiment']) await expect(modes.getByRole('radio', { name })).toBeVisible();
+  for (const b of await modes.getByRole('radio').all()) expect(await b.evaluate((e) => e.scrollWidth <= e.clientWidth), 'mode label fits').toBe(true);
+  await expect(page.locator('.ob-left')).toBeHidden();
   const controls = (await page.locator('.ov-bottom').boundingBox())!;
-  expect(controls.y + controls.height).toBeLessThanOrEqual(bar.y);
+  expect(controls.y + controls.height).toBeLessThanOrEqual(dock.y);
 });
 
 test('M02 Machines lists every station; a tap selects it and opens the inspector sheet', async ({ page }) => {
@@ -54,8 +59,8 @@ test('M02 Machines lists every station; a tap selects it and opens the inspector
   expect((await ws(page)).station).toBe('qa');
   await settle(page);
   const dock = (await page.locator('.insp-dock').boundingBox())!;
-  const bar = (await tabs(page).boundingBox())!;
-  expect(dock.y + dock.height).toBeLessThanOrEqual(bar.y + 1);
+  await expect(page.locator('.m-modes'), 'mode tier folds away while a sheet is up').toHaveCount(0);
+  expect(dock.y + dock.height).toBeLessThanOrEqual((await dockTop(page)) + 1);
   await page.waitForFunction(() => !(window as unknown as { lfCamera: { animating: boolean } }).lfCamera.animating);
   const m = (await page.locator('[data-station="qa"]').first().boundingBox())!;
   expect(m.y + m.height, 'selected machine stays above the sheet').toBeLessThanOrEqual(dock.y);
@@ -91,8 +96,7 @@ test('M04 Events tab opens the log above the tab bar; fields are 16 px so iOS do
   await expect(tabs(page).getByRole('button', { name: 'Events' })).toHaveAttribute('aria-current', 'page');
   await settle(page);
   const d = (await drawer.boundingBox())!;
-  const bar = (await tabs(page).boundingBox())!;
-  expect(d.y + d.height).toBeLessThanOrEqual(bar.y + 1);
+  expect(d.y + d.height).toBeLessThanOrEqual((await dockTop(page)) + 1);
   const sizes = await drawer.locator('input:not([type="checkbox"]), select').evaluateAll((els) => els.map((e) => parseFloat(getComputedStyle(e).fontSize)));
   expect(sizes.length).toBeGreaterThan(0);
   for (const s of sizes) expect(s).toBeGreaterThanOrEqual(16);
@@ -100,13 +104,12 @@ test('M04 Events tab opens the log above the tab bar; fields are 16 px so iOS do
   await expect(drawer).toHaveCount(0);
 });
 
-test('M05 More holds the remaining tools, the guided demo and the creator link', async ({ page }) => {
+test('M05 More holds the remaining tools and the guided demo', async ({ page }) => {
   await open(page);
   await tabs(page).getByRole('button', { name: 'More', exact: true }).click();
   const sheet = page.getByRole('dialog', { name: 'More' });
   await expect(sheet).toBeVisible();
   for (const t of ['Batches', 'Scenario lab', 'Assets', 'Quality', 'Maintenance', 'Reports', 'Settings', 'Guided demo']) await expect(sheet.getByRole('button', { name: new RegExp(`^${t}`) })).toBeVisible();
-  await expect(sheet.getByRole('link', { name: /Created by TheShipar/ })).toHaveAttribute('href', 'https://shipar.vercel.app/');
   await sheet.getByRole('button', { name: /^Settings/ }).click();
   await expect(sheet).toBeHidden();
   expect((await ws(page)).tool).toBe('settings');
@@ -159,4 +162,100 @@ test('M09 desktop keeps the rail and has no tab bar', async ({ page }) => {
   await open(page);
   await expect(page.locator('.rail')).toBeVisible();
   await expect(tabs(page)).toBeHidden();
+});
+
+test('M10 dock mode tier switches modes, picks a layer and offers restore', async ({ page }) => {
+  await open(page);
+  const tier = page.locator('.m-modes');
+  await tier.getByRole('radio', { name: 'Operate' }).click();
+  await expect(tier.getByRole('radio', { name: 'Operate' })).toHaveAttribute('aria-checked', 'true');
+  expect(await page.evaluate(() => (window as unknown as { lfWorkspace: { state(): { mode: string } } }).lfWorkspace.state().mode)).toBe('operate');
+  await tier.getByRole('radio', { name: 'Explore' }).click();
+  await tier.getByRole('button', { name: /Data layer/ }).click();
+  const pop = page.getByRole('dialog', { name: 'Data layer' });
+  await expect(pop).toBeVisible();
+  const r = (await pop.boundingBox())!;
+  expect(r.x).toBeGreaterThanOrEqual(0);
+  expect(r.x + r.width).toBeLessThanOrEqual(390);
+  expect(r.y + r.height).toBeLessThanOrEqual(await dockTop(page));
+  await pop.getByRole('radio', { name: /^Capacity/ }).click();
+  expect(await page.evaluate(() => (window as unknown as { lfWorkspace: { state(): { layer: string } } }).lfWorkspace.state().layer)).toBe('capacity');
+  await tier.getByRole('button', { name: 'Restore scenario' }).click();
+  await expect(page.getByRole('dialog', { name: /Restore/ })).toBeVisible();
+});
+
+test('M11 camera tools stack on the right; status sits right-aligned under them', async ({ page }) => {
+  await open(page);
+  const cam = (await page.locator('.cam-tools').boundingBox())!;
+  expect(cam.height, 'vertical stack').toBeGreaterThan(cam.width * 2);
+  expect(390 - (cam.x + cam.width)).toBeLessThanOrEqual(12);
+  const rail = (await page.locator('.ov-bottom .sr-main').boundingBox())!;
+  expect(Math.abs(rail.x + rail.width - (cam.x + cam.width))).toBeLessThanOrEqual(2);
+  expect(cam.y + cam.height).toBeLessThanOrEqual(rail.y);
+});
+
+test('M12 creator mark top-right opens portfolio links; the run menu shows a gear', async ({ page }) => {
+  await open(page);
+  const btn = page.getByRole('button', { name: 'About the creator' });
+  const b = (await btn.boundingBox())!;
+  expect(390 - (b.x + b.width)).toBeLessThanOrEqual(14);
+  expect(b.y).toBeLessThan(60);
+  await btn.click();
+  const card = page.getByRole('dialog', { name: 'About the creator' });
+  await expect(card.getByRole('link', { name: /Visit portfolio/ })).toHaveAttribute('href', 'https://shipar.vercel.app/');
+  await expect(card.getByRole('link', { name: /Other work/ })).toHaveAttribute('href', 'https://github.com/theShipar');
+  const c = (await card.boundingBox())!;
+  expect(c.x).toBeGreaterThanOrEqual(0);
+  expect(c.x + c.width).toBeLessThanOrEqual(390);
+  await expect(page.getByRole('button', { name: 'Run menu' }).locator('.ico-phone svg')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Run menu' }).locator('.ico-wide svg')).toBeHidden();
+});
+
+test('M13 inspector sheet steps machine to machine by arrow and swipe', async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => (window as unknown as { lfWorkspace: { openInspector(id: string): void } }).lfWorkspace.openInspector('robot'));
+  const nav = page.getByRole('navigation', { name: 'Step through machines' });
+  await expect(nav).toBeVisible();
+  await nav.getByRole('button', { name: /Next machine: Quality Check/ }).click();
+  expect((await ws(page)).station).toBe('qa');
+  await nav.getByRole('button', { name: /Previous machine: Robotic Process/ }).click();
+  expect((await ws(page)).station).toBe('robot');
+  const d = (await nav.locator('.insp-dots').boundingBox())!;
+  await page.mouse.move(d.x + d.width / 2 + 60, d.y + d.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(d.x + d.width / 2 - 60, d.y + d.height / 2, { steps: 6 });
+  await page.mouse.up();
+  expect((await ws(page)).station).toBe('qa');
+  await page.evaluate(() => (window as unknown as { lfWorkspace: { openInspector(id: string): void } }).lfWorkspace.openInspector('intake'));
+  await expect(nav.getByRole('button', { name: 'No previous machine' })).toBeDisabled();
+});
+
+test('M15 speeds 1/2/5/10 fit the top bar; labels hide and show from their own control', async ({ page }) => {
+  await open(page);
+  await expect(page.locator('[data-test="speed"] [role="radio"]:visible')).toHaveText(['1×', '2×', '5×', '10×']);
+  await page.locator('[data-test="speed"]').getByRole('radio', { name: '5×' }).click();
+  await expect(page.locator('[data-test="speed"]').getByRole('radio', { name: '5×' })).toHaveAttribute('aria-checked', 'true');
+  await page.locator('.m-modes').getByRole('button', { name: /Data layer/ }).click();
+  await page.getByRole('dialog', { name: 'Data layer' }).getByRole('radio', { name: /^Health/ }).click();
+  await expect(page.locator('.layer-chip').first()).toBeVisible();
+  const group = page.getByRole('toolbar', { name: 'Scene labels' });
+  const g = (await group.boundingBox())!;
+  const cam = (await page.getByRole('toolbar', { name: 'Camera' }).boundingBox())!;
+  expect(g.y + g.height, 'its own card above the camera stack').toBeLessThan(cam.y);
+  await group.getByRole('button', { name: 'Hide labels' }).click();
+  await expect(page.locator('.layer-chip:visible, .q-badge:visible, .flow-mark:visible')).toHaveCount(0);
+  await expect(page.locator('.st-label').first()).toBeVisible();
+  await group.getByRole('button', { name: 'Show labels' }).click();
+  await expect(page.locator('.layer-chip').first()).toBeVisible();
+});
+
+test('M14 tool sheets go back with a header chevron', async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => (window as unknown as { lfWorkspace: { openTool(t: string, i: string): void } }).lfWorkspace.openTool('batches', 'B-0842'));
+  const back = page.locator('.tool-drawer').getByRole('button', { name: 'Back to all batches' });
+  await expect(back).toBeVisible();
+  expect((await back.boundingBox())!.height).toBeGreaterThanOrEqual(40);
+  await back.click();
+  expect(await page.evaluate(() => (window as unknown as { lfWorkspace: { state(): { item: string | null } } }).lfWorkspace.state().item)).toBeNull();
+  await expect(back).toHaveCount(0);
 });

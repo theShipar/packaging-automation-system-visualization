@@ -123,7 +123,7 @@ export function SceneOverlay({ s, selected, hover, hoverComp, badges, onSelect, 
           const x = Math.min(right - 60, Math.max(left + 60, t.x));
           const y = Math.min(bottom - TAG_H, Math.max(top, t.y)) + TAG_H + 4;
           return (
-            <span key={`chip-${t.id}`} className={`layer-chip ${chip.tone}`} data-station={t.id} data-layer={layer} style={at(x, y)} title={chip.title}>
+            <span key={`chip-${t.id}`} className={`layer-chip ${chip.tone}${t.id === selected ? ' sel' : ''}`} data-station={t.id} data-layer={layer} style={at(x, y)} title={chip.title}>
               {chip.body}
             </span>
           );

@@ -32,6 +32,8 @@ export interface WorkspaceState {
   comp: string | null;
   hover: string | null;
   layer: Layer;
+  /** Scene labels (queue counts, layer readouts, flow marks). Only phones offer the switch. */
+  labels: boolean;
   /** Open the inspector automatically when a station is selected. */
   autoInspector: boolean;
 }
@@ -53,6 +55,7 @@ class WorkspaceStore {
     comp: null,
     hover: null,
     layer: pref<Layer>('layer', 'flow'),
+    labels: pref<boolean>('labels', true),
     autoInspector: pref<boolean>('autoInspector', true),
   };
   private ls = new Set<L>();
@@ -136,6 +139,10 @@ class WorkspaceStore {
   setLayer(layer: Layer) {
     this.set({ layer });
     setPref('layer', layer);
+  }
+  toggleLabels() {
+    this.set({ labels: !this.state.labels });
+    setPref('labels', this.state.labels);
   }
 
   /* ---- URL (deep links) ---- */

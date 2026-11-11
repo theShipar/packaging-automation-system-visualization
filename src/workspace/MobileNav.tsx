@@ -1,6 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { store, useUi } from '../app/store';
-import avatar from '../assets/theshipar.jpg';
 import { focusStation } from '../camera/commands';
 import { demo } from '../demo/demo';
 import { FAULT_DEF, STATIONS } from '../domain/config';
@@ -9,9 +8,11 @@ import { stationView } from '../domain/kpis';
 import { IcoChart, IcoClose, IcoEvents, IcoGrid, IcoLine, IcoMore, IcoPlay, IcoSave } from '../ui/Icons';
 import { StatusPill } from '../ui/Status';
 import { OVERLAYS_CHANGED } from './CanvasRegion';
+import { LayerPicker, MODE_META, RestoreButton, enterMode } from './ModeBar';
+import { usePhone } from './usePhone';
 import { useSheet } from './useSheet';
 import { TOOLS } from './WorkspaceRail';
-import { useWorkspace, workspace, type Tool } from './workspaceStore';
+import { MODES, useWorkspace, workspace, type Layer, type Mode, type Tool } from './workspaceStore';
 
 type Sheet = 'machines' | 'more' | null;
 type Tab = 'line' | 'machines' | 'events' | 'analytics' | 'more';
@@ -19,10 +20,36 @@ type Tab = 'line' | 'machines' | 'events' | 'analytics' | 'more';
 const TAB_TOOLS: Tool[] = ['events', 'analytics'];
 const MORE_TOOLS = TOOLS.filter((t) => !TAB_TOOLS.includes(t.id));
 
-/** Phone navigation: a bottom tab bar replaces the side rail. Hidden above 600 px. */
+const TAB_ORDER: Tab[] = ['line', 'machines', 'events', 'analytics', 'more'];
+
+/** Publishes the dock's footprint so sheets can run underneath it and keep their content clear. */
+function useDockHeight(ref: React.RefObject<HTMLElement>) {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const update = () => {
+      const h = el.offsetParent === null ? 0 : Math.max(0, innerHeight - el.getBoundingClientRect().top);
+      root.style.setProperty('--m-nav-h', `${Math.round(h)}px`);
+    };
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    addEventListener('resize', update);
+    update();
+    return () => {
+      ro.disconnect();
+      removeEventListener('resize', update);
+      root.style.removeProperty('--m-nav-h');
+    };
+  }, [ref]);
+}
+
+/** Phone navigation: a floating two-tier dock (modes over sections) replaces the side rail. Hidden above 600 px. */
 export function MobileNav() {
   const w = useWorkspace();
   const [sheet, setSheet] = useState<Sheet>(null);
+  const dock = useRef<HTMLDivElement>(null);
+  useDockHeight(dock);
   useEffect(() => {
     if (w.tool) setSheet(null);
   }, [w.tool]);
@@ -42,17 +69,41 @@ export function MobileNav() {
     } else workspace.openTool(w.tool === tab ? null : tab);
   };
 
+  const phone = usePhone();
+  const compact = active !== 'line' || (w.inspectorOpen && w.station !== null);
   return (
     <>
       {sheet && <NavSheet kind={sheet} onClose={() => setSheet(null)} />}
-      <nav className="m-tabs" aria-label="Sections">
-        <TabBtn tab="line" active={active} onGo={go} icon={<IcoLine />} label="Line" />
-        <TabBtn tab="machines" active={active} onGo={go} icon={<IcoGrid />} label="Machines" />
-        <TabBtn tab="events" active={active} onGo={go} icon={<IcoEvents />} label="Events" />
-        <TabBtn tab="analytics" active={active} onGo={go} icon={<IcoChart />} label="Analytics" />
-        <TabBtn tab="more" active={active} onGo={go} icon={<IcoMore />} label="More" />
-      </nav>
+      <div ref={dock} className={`m-dock${compact ? ' compact' : ''}`}>
+        {phone && !compact && <ModeTier mode={w.mode} layer={w.layer} />}
+        <nav className="m-tabs" aria-label="Sections" style={{ '--i': TAB_ORDER.indexOf(active) } as React.CSSProperties}>
+          <span className="m-ind" aria-hidden />
+          <TabBtn tab="line" active={active} onGo={go} icon={<IcoLine />} label="Line" />
+          <TabBtn tab="machines" active={active} onGo={go} icon={<IcoGrid />} label="Machines" />
+          <TabBtn tab="events" active={active} onGo={go} icon={<IcoEvents />} label="Events" />
+          <TabBtn tab="analytics" active={active} onGo={go} icon={<IcoChart />} label="Analytics" />
+          <TabBtn tab="more" active={active} onGo={go} icon={<IcoMore />} label="More" />
+        </nav>
+      </div>
     </>
+  );
+}
+
+/** Upper tier: the four modes as one visible segmented control, plus the data layer and restore. */
+function ModeTier({ mode, layer }: { mode: Mode; layer: Layer }) {
+  return (
+    <div className="m-modes" role="group" aria-label="Workspace mode and layer">
+      <div className="m-seg" role="radiogroup" aria-label="Mode" style={{ '--i': MODES.indexOf(mode) } as React.CSSProperties}>
+        <span className="m-seg-ind" aria-hidden />
+        {MODES.map((m) => (
+          <button key={m} role="radio" aria-checked={mode === m} className={mode === m ? 'on' : ''} onClick={() => enterMode(m)}>
+            {MODE_META[m].label}
+          </button>
+        ))}
+      </div>
+      <LayerPicker layer={layer} />
+      <RestoreButton />
+    </div>
   );
 }
 
@@ -161,13 +212,6 @@ function MoreList({ onPick }: { onPick: () => void }) {
           </button>
         </li>
       </ul>
-      <a className="m-credit" href="https://shipar.vercel.app/" target="_blank" rel="noopener noreferrer">
-        <img src={avatar} alt="" width={40} height={40} />
-        <span className="m-main">
-          <b>Created by TheShipar</b>
-          <small>shipar.vercel.app ↗</small>
-        </span>
-      </a>
     </>
   );
 }
